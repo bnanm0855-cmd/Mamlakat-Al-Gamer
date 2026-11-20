@@ -438,47 +438,33 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 <div class="mobile-dock"><a class="dock-active" href="#home"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span>الرئيسية</a><a href="#games"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span>الألعاب</a><button data-open="upload"><span>＋</span>رفع لعبة</button><button data-open="suggest"><span>⚒</span>اقتراح تعديل</button></div>
 <div class="modal-backdrop" id="modal" aria-hidden="true"><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="closeModal" aria-label="إغلاق">×</button><div id="modalContent"></div></section></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-(()=>{'use strict';const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const DB='mkg_visitors_local_v1';let games=[];let search='';let started=Date.now();function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove('show'),2600)}function read(){try{games=JSON.parse(localStorage.getItem(DB)||'[]')}catch(e){games=[]}}function save(){try{localStorage.setItem(DB,JSON.stringify(games))}catch(e){toast('مساحة التخزين المحلية ممتلئة؛ تعذر حفظ الملف')}}function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function filtered(){return games.filter(g=>!search||(g.name+' '+g.description+' '+(g.howToPlay||'')).toLowerCase().includes(search.toLowerCase()))}function render(){const list=filtered();$('#resultCount').textContent=list.length?list.length+' لعبة':'لا توجد ألعاب منشورة بعد';$('#gameGrid').innerHTML=list.length?list.map(g=>'<article class="game-card"><div class="game-cover">'+(g.emoji||'🎮')+'</div><div class="game-info"><h3>'+safe(g.name)+'</h3><p>'+safe(g.description||'اكتشف هذه اللعبة واستمتع بها.')+'</p><div class="game-meta"><span>'+safe(g.category)+'</span><span>محفوظة على هذا الجهاز</span></div><div class="game-actions"><button class="play-btn" data-play="'+g.id+'">العب الآن ▷</button><button data-download="'+g.id+'">تنزيل ↓</button></div></div></article>').join(''):'<div class="empty-state"><span>🕹️</span><b>'+(search?'لم نعثر على لعبة مطابقة':'الألعاب قادمة قريباً')+'</b><p>'+(search?'جرّب كلمة بحث أخرى.':'لم تتم إضافة ألعاب إلى هذه النسخة بعد. يمكنك رفع ملف لعبة من جهازك لتجربتها محلياً.')+'</p><button class="primary-btn" data-open="upload">ارفع لعبة</button></div>';$$('[data-play]').forEach(b=>b.onclick=()=>play(b.dataset.play));$$('[data-download]').forEach(b=>b.onclick=()=>download(b.dataset.download));$$('[data-open]').forEach(b=>b.onclick=()=>openForm(b.dataset.open))}$$('[data-view]').forEach(b=>b.onclick=()=>{const v=b.dataset.view;$$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='popular'?'الأكثر لعباً':v==='new'?'ألعاب جديدة':'كل الألعاب';$('#games').scrollIntoView({behavior:'smooth'});if(v==='new')games=[...games].reverse();render()});$('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.trim();render();$('#games').scrollIntoView({behavior:'smooth'})};$('#searchInput').oninput=e=>{search=e.target.value.trim();render()};$('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};/* القائمة الجانبية لها متحكم مستقل واحد فقط في نهاية الملف. */$('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true')}function fileData(file){return new Promise((resolve,reject)=>{if(!file)return resolve('');const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
-function openForm(kind){
- const upload=kind==='upload';
- $('#modalContent').innerHTML=upload?
- '<h2 id="modalTitle">إضافة لعبة جديدة</h2><p class="modal-desc">املأ بيانات اللعبة وارفع ملف HTML والصور المطلوبة. ستُرسل للمراجعة عند ربط قاعدة البيانات.</p><form id="uploadForm">'+
- '<div class="form-field"><label for="gameName">اسم اللعبة *</label><input id="gameName" required maxlength="70" placeholder="اسم اللعبة"></div>'+
- '<div class="form-field"><label for="gameFile">ملف اللعبة بصيغة HTML *</label><input id="gameFile" type="file" accept=".html,.htm,text/html" required><span class="form-help">الحد الأقصى 8 ميغابايت</span></div>'+
- '<div class="form-field"><label for="gameThumb">الصورة المصغّرة *</label><input id="gameThumb" type="file" accept="image/*" required></div>'+
- '<div class="form-field"><label for="gameImage">صورة داخل صفحة اللعبة</label><input id="gameImage" type="file" accept="image/*"></div>'+
- '<div class="form-field"><label for="gameDescription">وصف اللعبة *</label><textarea id="gameDescription" rows="3" required maxlength="500" placeholder="اشرح فكرة اللعبة"></textarea></div>'+
- '<div class="form-field"><label for="gameHow">طريقة اللعب *</label><textarea id="gameHow" rows="3" required maxlength="1000" placeholder="اشرح أزرار التحكم وكيفية الفوز"></textarea></div>'+
- '<button class="primary-btn form-submit">إرسال اللعبة للمراجعة</button></form>':
- '<h2 id="modalTitle">اقتراح تعديل على لعبة</h2><p class="modal-desc">ارفع النسخة المعدّلة من ملف اللعبة، واشرح التغييرات المطلوبة.</p><form id="suggestForm">'+
- '<div class="form-field"><label for="targetGame">اللعبة الموجودة *</label><select id="targetGame" required><option value="">اختر اللعبة</option>'+games.map(g=>'<option value="'+g.id+'">'+safe(g.name)+'</option>').join('')+'</select></div>'+
- '<div class="form-field"><label for="modifiedFile">ملف HTML المعدّل *</label><input id="modifiedFile" type="file" accept=".html,.htm,text/html" required></div>'+
- '<div class="form-field"><label for="suggestionImage">صورة توضيحية للتعديل (اختياري)</label><input id="suggestionImage" type="file" accept="image/*"></div>'+
- '<div class="form-field"><label for="suggestionText">شرح التعديلات *</label><textarea id="suggestionText" rows="4" required maxlength="1200" placeholder="ما الذي غيّرته؟ ولماذا؟"></textarea></div>'+
- '<button class="primary-btn form-submit">إرسال التعديل للمراجعة</button></form>';
- modal.classList.add('show');modal.setAttribute('aria-hidden','false');
- const form=upload?$('#uploadForm'):$('#suggestForm');
- form.onsubmit=async e=>{e.preventDefault();
-  if(upload){
-   const f=$('#gameFile').files[0],thumb=$('#gameThumb').files[0],image=$('#gameImage').files[0];
-   if(!f||!thumb)return toast('يرجى اختيار ملف HTML وصورة مصغّرة');
-   if(f.size>8*1024*1024)return toast('حجم ملف اللعبة يتجاوز 8 ميغابايت');
-   if(thumb.size>3*1024*1024||(image&&image.size>5*1024*1024))return toast('حجم الصور أكبر من الحد المسموح');
-   const data=await f.text();if(!/<html|<!doctype/i.test(data))return toast('الملف لا يبدو ملف HTML صالحاً');
-   games.unshift({id:Date.now(),name:$('#gameName').value.trim(),description:$('#gameDescription').value.trim(),howToPlay:$('#gameHow').value.trim(),filename:f.name,data,thumbnail:await fileData(thumb),image:await fileData(image),createdAt:new Date().toISOString(),plays:0,status:'pending'});
-   save();closeModal();render();toast('حُفظت اللعبة محلياً. الإرسال للمدير يتطلب ربط قاعدة البيانات');
-  }else{
-   const target=games.find(g=>String(g.id)===$('#targetGame').value),f=$('#modifiedFile').files[0];
-   if(!target||!f)return toast('اختر اللعبة وارفع ملف HTML المعدّل');
-   if(f.size>8*1024*1024)return toast('حجم الملف يتجاوز 8 ميغابايت');
-   const data=await f.text();if(!/<html|<!doctype/i.test(data))return toast('الملف لا يبدو ملف HTML صالحاً');
-   const proposals=JSON.parse(localStorage.getItem('mkg_local_suggestions')||'[]');
-   proposals.unshift({gameId:target.id,game:target.name,filename:f.name,data,image:await fileData($('#suggestionImage').files[0]),text:$('#suggestionText').value.trim(),createdAt:new Date().toISOString(),status:'pending'});
-   localStorage.setItem('mkg_local_suggestions',JSON.stringify(proposals));closeModal();toast('حُفظ التعديل محلياً. إرساله للمدير يتطلب ربط قاعدة البيانات');
-  }
- };
-}function download(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;const blob=new Blob([g.data],{type:'text/html'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=g.filename||g.name+'.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1200)}function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;g.plays=(g.plays||0)+1;save();const blob=new Blob([g.data],{type:'text/html'}),url=URL.createObjectURL(blob);$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.name)+'</h2><p class="modal-desc">تجربة اللعبة</p><iframe class="play-frame" sandbox="allow-scripts allow-forms" title="'+safe(g.name)+'" src="'+url+'"></iframe>';modal.classList.add('show');modal.setAttribute('aria-hidden','false');modal.dataset.blob=url;$('#closeModal').onclick=()=>{closeModal();URL.revokeObjectURL(url);$('#closeModal').onclick=closeModal}}read();render();if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});window.addEventListener('beforeunload',()=>{const elapsed=Math.max(0,Math.round((Date.now()-started)/60000));try{sessionStorage.setItem('mkg_last_session_minutes',String(elapsed))}catch(e){}});})();
+(()=>{'use strict';
+const SUPABASE_URL="https://pnypwxcfhfkorwuvcemx.supabase.co",SUPABASE_KEY="sb_publishable_gtP2tBonR_llF6lhgKhP3g_yZLyw1q3";
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+let games=[],search='',modalUrl='';
+function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fileUrl(path){return path?sb.storage.from('game-files').getPublicUrl(path).data.publicUrl:''}
+function imageUrl(path){return path?sb.storage.from('game-thumbnails').getPublicUrl(path).data.publicUrl:''}
+function filtered(){return games.filter(g=>!search||(g.title+' '+g.description+' '+g.category).toLowerCase().includes(search.toLowerCase()))}
+function render(){const list=filtered();$('#resultCount').textContent=list.length?list.length+' لعبة':'لا توجد ألعاب منشورة بعد';$('#gameGrid').innerHTML=list.length?list.map(g=>'<article class="game-card"><div class="game-cover">'+(g.thumbnail_path?'<img src="'+safe(imageUrl(g.thumbnail_path))+'" alt="" style="width:100%;height:100%;object-fit:cover">':'🎮')+'</div><div class="game-info"><h3>'+safe(g.title)+'</h3><p>'+safe(g.description||'اكتشف هذه اللعبة واستمتع بها.')+'</p><div class="game-meta"><span>'+safe(g.category||'ألعاب')+'</span><span>مملكة الجيمر</span></div><div class="game-actions"><button class="play-btn" data-play="'+g.id+'">العب الآن ▷</button><button data-download="'+g.id+'">تنزيل ↓</button></div></div></article>').join(''):'<div class="empty-state"><span>🕹️</span><b>'+(search?'لم نعثر على لعبة مطابقة':'الألعاب قادمة قريباً')+'</b><p>'+(search?'جرّب كلمة بحث أخرى.':'لم يتم نشر ألعاب بعد. تابعنا لاكتشاف الألعاب الجديدة.')+'</p></div>';
+$$('[data-play]').forEach(b=>b.onclick=()=>play(b.dataset.play));$$('[data-download]').forEach(b=>b.onclick=()=>download(b.dataset.download))}
+async function loadGames(){const {data,error}=await sb.from('games').select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,created_at').eq('status','published').order('created_at',{ascending:false});if(error)throw error;games=data||[];render()}
+$$('[data-view]').forEach(b=>b.onclick=()=>{const v=b.dataset.view;$$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='popular'?'الأكثر لعباً':v==='new'?'ألعاب جديدة':'كل الألعاب';$('#games').scrollIntoView({behavior:'smooth'});let shown=[...games];if(v==='new')shown.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));if(v==='popular')shown.sort((a,b)=>(b.plays||0)-(a.plays||0));games=shown;render()});
+$('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.trim();render();$('#games').scrollIntoView({behavior:'smooth'})};$('#searchInput').oninput=e=>{search=e.target.value.trim();render()};
+$('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};
+$('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
+function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;const url=fileUrl(g.html_file_path);$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة</p><iframe class="play-frame" sandbox="allow-scripts allow-forms" title="'+safe(g.title)+'" src="'+safe(url)+'"></iframe>';modal.classList.add('show');modal.setAttribute('aria-hidden','false')}
+function download(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;const a=document.createElement('a');a.href=fileUrl(g.html_file_path);a.target='_blank';a.rel='noopener';a.download=(g.title||'game')+'.html';a.click()}
+$$('[data-open]').forEach(b=>b.addEventListener('click',()=>toast('إضافة الألعاب وإرسال التعديلات متاحان من لوحة المدير فقط.')));
+$('#menuBtn').addEventListener('click',()=>{});loadGames().catch(e=>{console.error(e);$('#gameGrid').innerHTML='<div class="empty-state"><span>⚠️</span><b>تعذر تحميل الألعاب</b><p>تحقق من اتصال الإنترنت وإعدادات Supabase.</p></div>';toast('تعذر الاتصال بقاعدة الألعاب')});
+if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
 </script>
 
 <script>
@@ -540,17 +526,5 @@ function openForm(kind){
 </script>
 
 
-<script>
-/* Visitor session duration telemetry. Shared with the admin page on the same origin. */
-(function(){
- const KEY='mkg_visitor_sessions',sidKey='mkg_visitor_session_id';
- let sid=sessionStorage.getItem(sidKey);if(!sid){sid=(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(16).slice(2));sessionStorage.setItem(sidKey,sid)}
- const now=()=>Date.now();let last=now();
- function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
- function write(){try{const rows=read(),i=rows.findIndex(x=>x.id===sid),t=now();if(i<0)rows.push({id:sid,startedAt:t,lastSeen:t,seconds:0});else{rows[i].lastSeen=t;rows[i].seconds=(rows[i].seconds||0)+Math.max(0,Math.round((t-last)/1000));}last=t;localStorage.setItem(KEY,JSON.stringify(rows.slice(-500)))}catch(e){}}
- write();const timer=setInterval(()=>{if(document.visibilityState==='visible')write()},15000);
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){last=now();write()}else write()});
- window.addEventListener('pagehide',()=>{write();clearInterval(timer)});
-})();
-</script>
+
 </body></html>
