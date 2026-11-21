@@ -478,7 +478,7 @@ async function openContribution(){
  const form=$('#contributeForm');form.onsubmit=async event=>{event.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='جارٍ رفع الملفات...';let htmlPath='',thumbPath='';const id=crypto.randomUUID();try{
   const html=$('#contributorHtml').files[0],thumb=$('#contributorImage').files[0];
   if(!html||!thumb)throw Error('اختر ملف اللعبة والصورة');
-  if(html.size>50*1024*1024||!(/\\.html?$/i.test(html.name)||html.type==='text/html'))throw Error('ملف اللعبة يجب أن يكون HTML وألا يتجاوز 50MB');
+  if(html.size>50*1024*1024||!(/\.html?$/i.test(html.name)||html.type==='text/html'))throw Error('ملف اللعبة يجب أن يكون HTML وألا يتجاوز 50MB');
   if(thumb.size>5*1024*1024||!thumb.type.startsWith('image/'))throw Error('الصورة غير صالحة أو تتجاوز 5MB');
   const ext=(thumb.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
   htmlPath=id+'/'+Date.now()+'-'+html.name.replace(/[^a-zA-Z0-9._-]/g,'_');
