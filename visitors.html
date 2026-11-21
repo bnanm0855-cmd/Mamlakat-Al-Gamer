@@ -408,6 +408,31 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .game-card{display:flex;flex-direction:column;min-width:0}.game-cover{width:100%;height:auto!important;aspect-ratio:16/9;max-height:190px;overflow:hidden;flex:none}.game-cover img{width:100%!important;height:100%!important;max-width:100%;object-fit:cover;object-position:center}.game-info{display:flex;flex:1;flex-direction:column;min-width:0}.game-info p{min-height:0}.game-actions{display:flex;position:relative;z-index:2;gap:7px;margin-top:auto;padding-top:12px}.game-actions button{flex:1;min-width:0;z-index:2}
 .coming-soon-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border:1px solid #9b62d8;background:#28134b;color:#e6caff;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:900;line-height:1.5}.nav-link.is-soon{opacity:.86;cursor:default}.nav-link-text{flex:1;text-align:right}.note-badge{justify-self:start}.visitor-note{display:inline-flex;padding:9px 13px;border:1px solid #62408a;border-radius:12px;background:#1b1038;color:#d9c9f2;font-size:10px}.banner-badge{flex:none}.mobile-dock button:disabled{opacity:.7;cursor:not-allowed}.mobile-dock button small{font-size:8px;color:#d9baff}
 @media(max-width:760px){.game-cover{max-height:170px}}
+
+/* Stable navigation labels: only icon spans receive icon sizing */
+.nav-link{min-width:0;white-space:normal;line-height:1.45;justify-content:flex-start}
+.nav-link > .nav-icon{width:24px;min-width:24px;max-width:24px;flex:0 0 24px;display:inline-grid;place-items:center;font-size:19px;line-height:1;color:#b79aff;text-align:center}
+.nav-link .nav-link-text{width:auto;min-width:0;flex:1;text-align:right;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.nav-link .coming-soon-badge{width:auto;min-width:0;max-width:none;flex:0 0 auto;margin-inline-start:auto;font-size:9px;line-height:1.3;white-space:nowrap;text-align:center}
+.nav-link.is-soon{opacity:.82}
+.side-nav{min-width:0}
+.sidebar{min-width:0}
+.game-card{display:flex;flex-direction:column;min-width:0}
+.game-cover{width:100%;flex:0 0 auto}
+.game-info{flex:1}
+.game-info h3,.game-info p{overflow-wrap:anywhere}
+.game-actions button:disabled{opacity:.65;cursor:wait}
+.modal-card.play-modal{width:min(96vw,1200px);max-width:1200px;max-height:94dvh;overflow:auto;padding:22px}
+.modal-card.play-modal #modalContent{display:flex;flex-direction:column;min-height:0}
+.modal-card.play-modal h2{padding-inline:42px 0}
+.modal-card.play-modal .modal-desc{margin-bottom:10px}
+.modal-card.play-modal .play-frame{display:block;width:100%;height:78dvh;min-height:360px;max-height:calc(94dvh - 105px);border:1px solid #7540ae;border-radius:12px;background:#fff}
+@media(max-width:760px){
+ .nav-link{min-height:44px;height:auto;padding:10px 11px;gap:8px}
+ .nav-link .nav-link-text{font-size:11px}
+ .modal-card.play-modal{width:98vw;max-height:96dvh;padding:16px}
+ .modal-card.play-modal .play-frame{height:78dvh;min-height:300px;max-height:calc(96dvh - 110px)}
+}
 </style>
 </head>
 <body>
@@ -468,8 +493,8 @@ $$('[data-view]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const v=b.datas
 $('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.trim();render();$('#games').scrollIntoView({behavior:'smooth'})};$('#searchInput').oninput=e=>{search=e.target.value.trim();render()};
 $('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};
 $('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
-async function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;try{const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600);if(error)throw error;$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة</p><iframe class="play-frame" sandbox="allow-scripts allow-forms" title="'+safe(g.title)+'" src="'+safe(data.signedUrl)+'"></iframe>';modal.classList.add('show');modal.setAttribute('aria-hidden','false')}catch(e){toast('تعذر تشغيل اللعبة: '+e.message)}}
+function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');modal.querySelector('.modal-card')?.classList.remove('play-modal');$('#modalContent').innerHTML='';if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
+async function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;const btn=document.querySelector('[data-play="'+CSS.escape(String(id))+'"]');if(btn){btn.disabled=true;btn.textContent='جارٍ فتح اللعبة...'}try{if(!g.html_file_path)throw new Error('ملف اللعبة غير مرتبط');const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600);if(error)throw error;if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط تشغيل للعبة');$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — يمكنك إغلاق النافذة للعودة إلى الألعاب</p><iframe class="play-frame" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+safe(data.signedUrl)+'"></iframe>';modal.querySelector('.modal-card')?.classList.add('play-modal');modal.classList.add('show');modal.setAttribute('aria-hidden','false')}catch(e){console.error('Game launch failed:',e);toast('تعذر تشغيل اللعبة: '+(e.message||'تحقق من ملف اللعبة وصلاحيات التخزين'))}finally{if(btn){btn.disabled=false;btn.textContent='العب الآن ▷'}}}
 async function download(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;try{const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600,{download:(g.title||'game')+'.html'});if(error)throw error;const a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';a.rel='noopener';a.click()}catch(e){console.error('Game download failed:',e);toast('تعذر تنزيل ملف اللعبة: '+(e.message||'تحقق من صلاحيات game-files'))}}
 
 async function openContribution(){
