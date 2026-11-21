@@ -29,6 +29,11 @@
 @media(max-width:800px){.app{display:block}.topbar{height:70px;grid-template-columns:auto 1fr auto;padding:0 12px;position:sticky}.topbar .search{display:none}.brand{justify-self:center}.brand h1{font-size:16px}.brand small{font-size:9px}.logo{width:42px;height:42px}.top-left{order:-1}.admin{display:none}.mobile-menu{display:grid}.sidebar{position:fixed;right:0;top:70px;width:275px;height:calc(100vh - 70px);transform:translateX(105%);transition:.25s;z-index:40;box-shadow:-20px 0 45px #0008}.sidebar.open{transform:translateX(0)}.main{padding:18px 12px}.head{align-items:flex-start;flex-direction:column}.head h2{font-size:20px}.tools{width:100%}.tools .btn{flex:1}.stats{grid-template-columns:repeat(2,1fr);gap:9px}.stat{height:95px;padding:11px}.stat-info strong{font-size:20px}.stat-icon{font-size:24px}.grid,.lower,.settings-grid{grid-template-columns:1fr}.grid>.rank-panel,.lower .mini:last-child{grid-column:auto}.chart{height:245px}.table table{min-width:600px}}
 @media(max-width:430px){.stats{grid-template-columns:1fr}.top-left .icon-btn:not(.mobile-menu){display:none}.stat{height:88px}}
 .actions .preview-game-action{background:#6b22c7!important;border:1px solid #bd83ff!important;color:#fff!important;font-weight:800!important;min-width:112px}.actions .preview-game-action:hover{background:#852cff!important;box-shadow:0 0 14px #9b45ff66}
+
+/* Unified game preview dimensions: match visitor player on every screen */
+#modal:has(#adminGamePreviewFrame) .modal-box{width:min(1000px,calc(100vw - 40px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px}
+#adminGamePreviewFrame{display:block;width:100%;height:min(70dvh,560px);min-height:320px;border:1px solid #543080;border-radius:12px;background:#10141c}
+@media(max-width:700px){#modal:has(#adminGamePreviewFrame) .modal-box{width:calc(100vw - 16px);padding:12px}#adminGamePreviewFrame{height:65dvh;min-height:280px}}
 </style>
 </head>
 <body>
@@ -153,6 +158,18 @@ $('#refreshBtn')?.addEventListener('click',async()=>{try{await loadGames();rende
 function openModal(html){$('#modalBox').innerHTML=html;$('#modal').classList.add('show')}
 function closeModal(){$('#modal').classList.remove('show');if(window.__mkgAdminPreviewUrl){URL.revokeObjectURL(window.__mkgAdminPreviewUrl);window.__mkgAdminPreviewUrl=''}}
 $('#modal')?.addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+document.addEventListener('keydown',e=>{
+ const frame=$('#adminGamePreviewFrame');if(!frame||!$('#modal')?.classList.contains('show'))return;
+ const key=e.key.toLowerCase();if(!['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' '].includes(key))return;
+ if(e.target===frame)return;e.preventDefault();
+ try{frame.contentWindow.focus();frame.contentWindow.document.dispatchEvent(new KeyboardEvent('keydown',{key:e.key,code:e.code,bubbles:true,cancelable:true,which:e.which,keyCode:e.keyCode}));}catch(_){}
+});
+document.addEventListener('keyup',e=>{
+ const frame=$('#adminGamePreviewFrame');if(!frame||!$('#modal')?.classList.contains('show'))return;
+ const key=e.key.toLowerCase();if(!['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' '].includes(key))return;
+ if(e.target===frame)return;
+ try{frame.contentWindow.document.dispatchEvent(new KeyboardEvent('keyup',{key:e.key,code:e.code,bubbles:true,cancelable:true,which:e.which,keyCode:e.keyCode}));}catch(_){}
+});
 async function uploadFile(bucket,file,path){const contentType=bucket==='game-files'?'text/html; charset=utf-8':(file.type||'application/octet-stream');const {error}=await sb.storage.from(bucket).upload(path,file,{upsert:true,contentType,cacheControl:'3600'});if(error)throw error;return path}
 function gameForm(old){
  openModal('<div class="modal-head"><h3>'+(old?'تعديل اللعبة':'إضافة لعبة')+'</h3><button type="button" class="icon-btn" onclick="closeModal()">×</button></div><form id="gameForm"><div class="field"><label>اسم اللعبة *</label><input id="gname" required maxlength="120" value="'+esc(old?.name||'')+'"></div><div class="field"><label>التصنيف</label><input id="gcat" value="'+esc(old?.category||'ألعاب')+'"></div><div class="field">'+(old?'<button type="button" class="btn secondary" style="width:100%;margin-bottom:10px" onclick="previewGame(\''+old.id+'\')">▶ تجربة اللعبة الحالية قبل الحفظ</button>':'')+'<label>ملف HTML للعبة '+(old?'(اختياري عند التعديل)':'*')+'</label><input id="gfile" type="file" accept=".html,.htm,text/html" '+(old?'':'required')+'></div><div class="field"><label>الصورة المصغّرة '+(old?'(اختياري عند التعديل)':'*')+'</label><input id="gthumb" type="file" accept="image/png,image/jpeg,image/webp,image/gif" '+(old?'':'required')+'></div><div class="field"><label>الوصف</label><textarea id="gdesc" rows="3">'+esc(old?.description||'')+'</textarea></div><div class="field"><label>طريقة اللعب</label><textarea id="ginstructions" rows="3">'+esc(old?.instructions||'')+'</textarea></div><div class="tools"><button class="btn">حفظ اللعبة</button><button type="button" class="btn secondary" onclick="closeModal()">إلغاء</button></div></form>');
@@ -183,7 +200,8 @@ window.previewGame=async id=>{
   const source=await response.blob();
   if(window.__mkgAdminPreviewUrl)URL.revokeObjectURL(window.__mkgAdminPreviewUrl);
   window.__mkgAdminPreviewUrl=URL.createObjectURL(new Blob([source],{type:'text/html;charset=utf-8'}));
-  openModal('<div class="modal-head"><h3>تجربة اللعبة: '+esc(g.name)+'</h3><button type="button" class="icon-btn" onclick="closeModal()">×</button></div><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px"><span style="font-size:12px;color:#bda9e8">هذه معاينة لملف اللعبة قبل النشر</span><button type="button" class="btn secondary" onclick="window.open(window.__mkgAdminPreviewUrl,\'_blank\',\'noopener\')">فتح في نافذة مستقلة ↗</button></div><iframe title="'+esc(g.name)+'" src="'+window.__mkgAdminPreviewUrl+'" sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" allow="fullscreen; gamepad; autoplay" allowfullscreen style="width:100%;height:min(72vh,760px);border:1px solid #543080;border-radius:12px;background:white"></iframe>');
+  openModal('<div class="modal-head"><h3>تجربة اللعبة: '+esc(g.name)+'</h3><button type="button" class="icon-btn" onclick="closeModal()">×</button></div><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px"><span style="font-size:12px;color:#bda9e8">هذه معاينة لملف اللعبة قبل النشر</span><button type="button" class="btn secondary" onclick="window.open(window.__mkgAdminPreviewUrl,\'_blank\',\'noopener\')">فتح في نافذة مستقلة ↗</button></div><iframe id="adminGamePreviewFrame" title="'+esc(g.name)+'" src="'+window.__mkgAdminPreviewUrl+'" tabindex="0" sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" allow="fullscreen; gamepad; autoplay" allowfullscreen></iframe><p style="margin:8px 0 0;color:#bda9e8;font-size:11px">للتحكم من الكمبيوتر: استخدم الأسهم أو W A S D. اضغط داخل اللعبة أولاً إذا لم تستجب المفاتيح.</p>');
+  const gameFrame=$('#adminGamePreviewFrame');gameFrame?.addEventListener('load',()=>gameFrame.focus());setTimeout(()=>gameFrame?.focus(),100);
  }catch(e){console.error('Admin game preview failed:',e);toast('تعذرت معاينة اللعبة: '+(e.message||'تحقق من ملف HTML وصلاحيات التخزين'))}
 };
 window.deleteGame=async id=>{const g=db.games.find(x=>x.id===id);if(!g||!confirm('حذف اللعبة نهائياً؟'))return;try{const paths=[];if(g.html_file_path)paths.push(g.html_file_path);if(g.thumbnail_path)paths.push(g.thumbnail_path);if(paths.length){await sb.storage.from('game-files').remove(g.html_file_path?[g.html_file_path]:[]);await sb.storage.from('game-thumbnails').remove(g.thumbnail_path?[g.thumbnail_path]:[])}const {error}=await sb.from('games').delete().eq('id',id);if(error)throw error;log('تم حذف لعبة: '+g.name);await loadGames();render();toast('تم حذف اللعبة')}catch(e){toast('تعذر الحذف: '+e.message)}};
