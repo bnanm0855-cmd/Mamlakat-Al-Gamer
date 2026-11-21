@@ -505,7 +505,24 @@ $('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.
 $('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};
 $('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');modal.querySelector('.modal-card')?.classList.remove('play-modal');$('#modalContent').innerHTML='';if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
-async function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;const btn=document.querySelector('[data-play="'+CSS.escape(String(id))+'"]');if(btn){btn.disabled=true;btn.textContent='جارٍ فتح اللعبة...'}try{if(!g.html_file_path)throw new Error('ملف اللعبة غير مرتبط');const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600);if(error)throw error;if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط تشغيل للعبة');$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — يمكنك إغلاق النافذة للعودة إلى الألعاب</p><iframe class="play-frame" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+safe(data.signedUrl)+'"></iframe>';modal.querySelector('.modal-card')?.classList.add('play-modal');modal.classList.add('show');modal.setAttribute('aria-hidden','false')}catch(e){console.error('Game launch failed:',e);toast('تعذر تشغيل اللعبة: '+(e.message||'تحقق من ملف اللعبة وصلاحيات التخزين'))}finally{if(btn){btn.disabled=false;btn.textContent='العب الآن ▷'}}}
+async function play(id){
+ const g=games.find(x=>String(x.id)===String(id));if(!g)return;
+ const btn=document.querySelector('[data-play="'+CSS.escape(String(id))+'"]');
+ if(btn){btn.disabled=true;btn.textContent='جارٍ فتح اللعبة...'}
+ try{
+  if(!g.html_file_path)throw new Error('ملف اللعبة غير مرتبط');
+  const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600);
+  if(error)throw error;if(!data?.signedUrl)throw new Error('لم يتم إنشاء رابط تشغيل للعبة');
+  const response=await fetch(data.signedUrl,{cache:'no-store'});
+  if(!response.ok)throw new Error('تعذر تنزيل ملف اللعبة من التخزين ('+response.status+')');
+  const source=await response.blob();
+  if(modalUrl)URL.revokeObjectURL(modalUrl);
+  modalUrl=URL.createObjectURL(new Blob([source],{type:'text/html;charset=utf-8'}));
+  $('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — يمكنك إغلاق النافذة للعودة إلى الألعاب</p><iframe class="play-frame" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+modalUrl+'"></iframe>';
+  modal.querySelector('.modal-card')?.classList.add('play-modal');modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+ }catch(e){console.error('Game launch failed:',e);toast('تعذر تشغيل اللعبة: '+(e.message||'تحقق من ملف اللعبة وصلاحيات التخزين'))}
+ finally{if(btn){btn.disabled=false;btn.textContent='العب الآن ▷'}}
+}
 async function download(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;try{const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600,{download:(g.title||'game')+'.html'});if(error)throw error;const a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';a.rel='noopener';a.click()}catch(e){console.error('Game download failed:',e);toast('تعذر تنزيل ملف اللعبة: '+(e.message||'تحقق من صلاحيات game-files'))}}
 
 async function openContribution(){
