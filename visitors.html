@@ -503,7 +503,19 @@ function watchGames(){
 $$('[data-view]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const v=b.dataset.view;currentView=v;$$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='new'?'ألعاب جديدة':v==='games'?'كل الألعاب':'ألعاب مميزة';$('#games').scrollIntoView({behavior:'smooth'});render()});
 $('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.trim();render();$('#games').scrollIntoView({behavior:'smooth'})};$('#searchInput').oninput=e=>{search=e.target.value.trim();render()};
 $('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};
-$('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+$('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){closeModal();return}
+ const frame=$('#visitorGameFrame');if(!frame||!modal.classList.contains('show'))return;
+ const key=e.key.toLowerCase();if(!['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' '].includes(key))return;
+ if(e.target===frame||frame.contains(e.target))return;
+ e.preventDefault();try{frame.contentWindow.focus();frame.contentWindow.document.dispatchEvent(new KeyboardEvent('keydown',{key:e.key,code:e.code,bubbles:true,cancelable:true,which:e.which,keyCode:e.keyCode}));}catch(_){}
+});
+document.addEventListener('keyup',e=>{
+ const frame=$('#visitorGameFrame');if(!frame||!modal.classList.contains('show'))return;
+ const key=e.key.toLowerCase();if(!['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d',' '].includes(key))return;
+ if(e.target===frame||frame.contains(e.target))return;
+ try{frame.contentWindow.document.dispatchEvent(new KeyboardEvent('keyup',{key:e.key,code:e.code,bubbles:true,cancelable:true,which:e.which,keyCode:e.keyCode}));}catch(_){}
+});
 function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');modal.querySelector('.modal-card')?.classList.remove('play-modal');$('#modalContent').innerHTML='';if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
 async function play(id){
  const g=games.find(x=>String(x.id)===String(id));if(!g)return;
@@ -518,8 +530,9 @@ async function play(id){
   const source=await response.blob();
   if(modalUrl)URL.revokeObjectURL(modalUrl);
   modalUrl=URL.createObjectURL(new Blob([source],{type:'text/html;charset=utf-8'}));
-  $('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — يمكنك إغلاق النافذة للعودة إلى الألعاب</p><iframe class="play-frame" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+modalUrl+'"></iframe>';
+  $('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — استخدم الأسهم أو W A S D للتحكم، ويمكنك إغلاق النافذة للعودة</p><iframe id="visitorGameFrame" class="play-frame" tabindex="0" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+modalUrl+'"></iframe>';
   modal.querySelector('.modal-card')?.classList.add('play-modal');modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+  const gameFrame=$('#visitorGameFrame');gameFrame.addEventListener('load',()=>gameFrame.focus());setTimeout(()=>gameFrame.focus(),100);
  }catch(e){console.error('Game launch failed:',e);toast('تعذر تشغيل اللعبة: '+(e.message||'تحقق من ملف اللعبة وصلاحيات التخزين'))}
  finally{if(btn){btn.disabled=false;btn.textContent='العب الآن ▷'}}
 }
