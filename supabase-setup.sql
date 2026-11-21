@@ -1,4 +1,5 @@
--- Mamlakat Al Gamer: Supabase database and storage policies\n-- Visitor uploads are inserted as pending; only an authenticated admin can publish or reject them.
+-- Mamlakat Al Gamer: Supabase database and storage policies
+-- Visitor uploads are inserted as pending; only an authenticated admin can publish or reject them.
 -- Run this in Supabase Dashboard > SQL Editor.
 -- IMPORTANT: after creating the administrator account in Supabase Auth,
 -- insert that user's UUID into public.user_roles as role='admin'.
@@ -18,6 +19,7 @@ create table if not exists public.games (
   instructions text not null default '',
   html_file_path text not null,
   thumbnail_path text not null,
+  submitter_name text not null default 'المدير',
   status text not null default 'pending' check (status in ('pending','published','rejected')),
   created_at timestamptz not null default now()
 );
@@ -26,7 +28,8 @@ alter table public.games add column if not exists description text not null defa
 alter table public.games add column if not exists category text not null default 'ألعاب';
 alter table public.games add column if not exists instructions text not null default '';
 alter table public.games add column if not exists html_file_path text;
-alter table public.games add column if not exists thumbnail_path text;\nalter table public.games add column if not exists submitter_name text not null default 'المدير';
+alter table public.games add column if not exists thumbnail_path text;
+alter table public.games add column if not exists submitter_name text not null default 'المدير';
 alter table public.games add column if not exists status text not null default 'pending';
 alter table public.games add column if not exists created_at timestamptz not null default now();
 
@@ -41,7 +44,13 @@ as $$
 $$;
 
 alter table public.user_roles enable row level security;
-alter table public.games enable row level security;\n\n-- Explicit table privileges; RLS below still decides which rows each role can access.\ngrant select, insert on public.games to anon;\ngrant select, insert, update, delete on public.games to authenticated;\ngrant select on public.user_roles to authenticated;\ngrant execute on function public.is_mkg_admin() to anon, authenticated;
+alter table public.games enable row level security;
+
+-- Explicit table privileges; RLS below still decides which rows each role can access.
+grant select, insert on public.games to anon;
+grant select, insert, update, delete on public.games to authenticated;
+grant select on public.user_roles to authenticated;
+grant execute on function public.is_mkg_admin() to anon, authenticated;
 
 drop policy if exists "mkg roles read own" on public.user_roles;
 create policy "mkg roles read own" on public.user_roles
