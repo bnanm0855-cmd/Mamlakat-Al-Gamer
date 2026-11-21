@@ -46,6 +46,13 @@ $$;
 alter table public.user_roles enable row level security;
 alter table public.games enable row level security;
 
+-- Remove legacy policies from the previous schema. They call is_admin(),
+-- while the current application consistently uses is_mkg_admin().
+drop policy if exists "Admins manage games" on public.games;
+drop policy if exists "Admins manage project storage" on storage.objects;
+drop policy if exists "Visitors read published games" on public.games;
+drop policy if exists "Visitors read game thumbnails 76h136_0" on storage.objects;
+
 -- Explicit table privileges; RLS below still decides which rows each role can access.
 grant select, insert on public.games to anon;
 grant select, insert, update, delete on public.games to authenticated;
