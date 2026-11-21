@@ -424,15 +424,15 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
    <a class="nav-link" href="#games" data-view="games"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span> كل الألعاب</a>
    <a class="nav-link" href="#new" data-view="new"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/><path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1z"/></svg></span> ألعاب جديدة</a>
    <button class="nav-link is-soon" type="button" disabled aria-disabled="true"><span class="nav-icon">↗</span><span class="nav-link-text">الأكثر لعباً</span><span class="coming-soon-badge">قريباً</span></button>
-   <button class="nav-link is-soon" type="button" data-open="suggest" disabled aria-disabled="true"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15z"/></svg></span><span class="nav-link-text">اقتراح تعديل مشروع</span><span class="coming-soon-badge">قريباً</span></button>
+   <button class="nav-link" type="button" id="contributeBtn"><span class="nav-icon">＋</span><span class="nav-link-text">إرسال لعبة للمراجعة</span><span class="coming-soon-badge">متاح</span></button>
    <button class="nav-link is-soon" type="button" disabled aria-disabled="true"><span class="nav-icon">✦</span><span class="nav-link-text">مساهمات الزوار</span><span class="coming-soon-badge">قريباً</span></button>
 </nav>
-  <div class="sidebar-note"><span>✨</span><b>المزيد من المزايا قادم</b><small>اقتراحات التعديل والمساهمات ستتوفر قريباً.</small></div>
+  <div class="sidebar-note"><span>✨</span><b>المزيد من المزايا قادم</b><small>يمكنك إرسال لعبة HTML وصورتها ليراجعها المدير.</small></div>
  </aside>
  <main class="main">
   <section class="hero" aria-label="ترحيب">
    <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="hero-art"><span class="hero-controller">🎮</span><span class="spark s1">✦</span><span class="spark s2">✧</span><span class="spark s3">◈</span></div>
-   <div class="hero-copy"><span class="eyebrow">مرحباً بك في عالم الألعاب</span><h1>مغامرتك القادمة<br><em>تبدأ من هنا!</em></h1><p>اكتشف ألعاباً ممتعة وجرّبها مباشرة، وستتوفر مساهمات الزوار قريباً.</p><a class="primary-btn" href="#games">ابدأ اللعب الآن <span>◁</span></a><div class="hero-dots"><i></i><i></i><i></i><i></i></div></div>
+   <div class="hero-copy"><span class="eyebrow">مرحباً بك في عالم الألعاب</span><h1>مغامرتك القادمة<br><em>تبدأ من هنا!</em></h1><p>اكتشف ألعاباً ممتعة وجرّبها مباشرة، ويمكنك إرسال لعبتك ليجربها المدير قبل نشرها.</p><a class="primary-btn" href="#games">ابدأ اللعب الآن <span>◁</span></a><div class="hero-dots"><i></i><i></i><i></i><i></i></div></div>
   </section>
   <section class="welcome-strip"><div><b>جاهز للتحدي؟</b><span>اختر لعبتك المفضلة وانطلق في المغامرة.</span></div><span class="strip-icon">👑</span></section>
   <section class="section-block" id="games">
@@ -472,6 +472,26 @@ function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hi
 async function play(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;try{const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600);if(error)throw error;$('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة</p><iframe class="play-frame" sandbox="allow-scripts allow-forms" title="'+safe(g.title)+'" src="'+safe(data.signedUrl)+'"></iframe>';modal.classList.add('show');modal.setAttribute('aria-hidden','false')}catch(e){toast('تعذر تشغيل اللعبة: '+e.message)}}
 async function download(id){const g=games.find(x=>String(x.id)===String(id));if(!g)return;try{const {data,error}=await sb.storage.from('game-files').createSignedUrl(g.html_file_path,3600,{download:(g.title||'game')+'.html'});if(error)throw error;const a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';a.rel='noopener';a.click()}catch(e){console.error('Game download failed:',e);toast('تعذر تنزيل ملف اللعبة: '+(e.message||'تحقق من صلاحيات game-files'))}}
 
+async function openContribution(){
+ $('#modalContent').innerHTML='<h2 id="modalTitle">إرسال لعبة إلى مملكة الجيمر</h2><p class="modal-desc">ارفع ملف HTML وصورة اللعبة. ستبقى اللعبة قيد المراجعة ولن تظهر للزوار إلا بعد موافقة المدير.</p><form id="contributeForm"><div class="form-field"><label for="contributorName">اسمك (اختياري)</label><input id="contributorName" maxlength="60" placeholder="اسم المساهم"></div><div class="form-field"><label for="contributorTitle">اسم اللعبة *</label><input id="contributorTitle" maxlength="120" required></div><div class="form-field"><label for="contributorCategory">التصنيف</label><input id="contributorCategory" maxlength="60" value="ألعاب"></div><div class="form-field"><label for="contributorDescription">وصف مختصر</label><textarea id="contributorDescription" rows="3" maxlength="600"></textarea></div><div class="form-field"><label for="contributorHtml">ملف اللعبة HTML *</label><input id="contributorHtml" type="file" accept=".html,.htm,text/html" required><small class="form-help">الحد الأقصى 50 ميغابايت.</small></div><div class="form-field"><label for="contributorImage">صورة اللعبة *</label><input id="contributorImage" type="file" accept="image/png,image/jpeg,image/webp,image/gif" required><small class="form-help">الحد الأقصى 5 ميغابايت.</small></div><button class="primary-btn form-submit" type="submit">إرسال للمراجعة</button></form>';
+ modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+ const form=$('#contributeForm');form.onsubmit=async event=>{event.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;submit.textContent='جارٍ رفع الملفات...';let htmlPath='',thumbPath='';const id=crypto.randomUUID();try{
+  const html=$('#contributorHtml').files[0],thumb=$('#contributorImage').files[0];
+  if(!html||!thumb)throw Error('اختر ملف اللعبة والصورة');
+  if(html.size>50*1024*1024||!(/\\.html?$/i.test(html.name)||html.type==='text/html'))throw Error('ملف اللعبة يجب أن يكون HTML وألا يتجاوز 50MB');
+  if(thumb.size>5*1024*1024||!thumb.type.startsWith('image/'))throw Error('الصورة غير صالحة أو تتجاوز 5MB');
+  const ext=(thumb.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+  htmlPath=id+'/'+Date.now()+'-'+html.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  thumbPath=id+'/'+Date.now()+'.'+ext;
+  let result=await sb.storage.from('game-files').upload(htmlPath,html,{contentType:'text/html',upsert:false});if(result.error)throw result.error;
+  result=await sb.storage.from('game-thumbnails').upload(thumbPath,thumb,{contentType:thumb.type,upsert:false});if(result.error)throw result.error;
+  const row={id,title:$('#contributorTitle').value.trim(),category:$('#contributorCategory').value.trim()||'ألعاب',description:$('#contributorDescription').value.trim(),instructions:'',html_file_path:htmlPath,thumbnail_path:thumbPath,submitter_name:$('#contributorName').value.trim()||'زائر',status:'pending'};
+  const inserted=await sb.from('games').insert(row);if(inserted.error)throw inserted.error;
+  closeModal();toast('تم إرسال اللعبة بنجاح. ستظهر بعد موافقة المدير.');
+ }catch(error){console.error('Visitor game submission failed:',error);if(htmlPath)await sb.storage.from('game-files').remove([htmlPath]);if(thumbPath)await sb.storage.from('game-thumbnails').remove([thumbPath]);toast('تعذر إرسال اللعبة: '+(error.message||'تحقق من اتصال قاعدة البيانات'));submit.disabled=false;submit.textContent='إرسال للمراجعة'}
+ };
+}
+$('#contributeBtn')?.addEventListener('click',openContribution);
 loadGames().then(watchGames).catch(e=>{console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e)});
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
