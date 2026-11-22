@@ -305,10 +305,10 @@ async function loadContributors(){
 function setPage(id){
  const page=document.getElementById(id);
  if(!page||!page.classList.contains('page')){console.warn('Admin page not found:',id);return false}
- // IMPORTANT: $ selects one element; $ returns the collection. Using $ with forEach
+ // Use $ because these selectors return multiple navigation/page elements.
  // previously threw a TypeError before the active page could change or the menu close.
- $('.page').forEach(section=>section.classList.toggle('active',section===page));
- $('.nav button[data-page]').forEach(button=>{
+ $$('.page').forEach(section=>section.classList.toggle('active',section===page));
+ $$('.nav button[data-page]').forEach(button=>{
   const active=button.dataset.page===id;
   button.classList.toggle('active',active);
   if(active)button.setAttribute('aria-current','page');
