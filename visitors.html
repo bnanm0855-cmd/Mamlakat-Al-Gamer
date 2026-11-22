@@ -506,17 +506,60 @@ async function loadVisitorCategories(){const {data,error}=await sb.from('game_ca
 function render(){renderCategoryFilters();const list=filtered();$('#resultCount').textContent=list.length?list.length+' لعبة':'لا توجد ألعاب منشورة بعد';$('#gameGrid').innerHTML=list.length?list.map(g=>'<article class="game-card"><div class="game-cover">'+(g.thumbnail_path?'<img data-thumb-path="'+safe(g.thumbnail_path)+'" src="'+safe(imageUrl(g.thumbnail_path))+'" alt="صورة '+safe(g.title)+'" loading="lazy">':'🎮')+'</div><div class="game-info"><h3>'+safe(g.title)+'</h3><p>'+safe(g.description||'اكتشف هذه اللعبة واستمتع بها.')+'</p><div class="game-meta"><span>'+safe(g.category||'ألعاب')+'</span><span>مملكة الجيمر</span></div><div class="game-actions"><button class="play-btn" data-play="'+g.id+'">العب الآن ▷</button><button data-download="'+g.id+'">تنزيل ↓</button></div></div></article>').join(''):'<div class="empty-state"><span>🕹️</span><b>'+(search?'لم نعثر على لعبة مطابقة':'لا توجد ألعاب منشورة حالياً')+'</b><p>'+(search?'جرّب كلمة بحث أخرى.':'ستظهر الألعاب هنا بعد أن ينشرها المدير من لوحة الإدارة.')+'</p></div>';
 $$('[data-play]').forEach(b=>b.onclick=()=>play(b.dataset.play));$$('[data-download]').forEach(b=>b.onclick=()=>download(b.dataset.download));
 $$('[data-thumb-path]').forEach(img=>{img.onerror=async()=>{const path=img.dataset.thumbPath;if(!path||img.dataset.signedFallback==='yes')return;img.dataset.signedFallback='yes';try{const {data,error}=await sb.storage.from('game-thumbnails').createSignedUrl(path,3600);if(error)throw error;img.src=data.signedUrl}catch(e){img.replaceWith(document.createTextNode('🎮'))}}})}
-async function loadGames(){const {data,error}=await sb.from('games').select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,created_at').eq('status','published').order('created_at',{ascending:false}).limit(100);if(error){console.error('Supabase games query failed:',error);$('#gameGrid').innerHTML='<div class="empty-state"><span>⚠️</span><b>تعذر تحميل الألعاب</b><p>'+safe(error.message||'تحقق من صلاحيات قراءة الألعاب المنشورة في Supabase.')+'</p><button class="primary-btn" id="retryGames" type="button">إعادة المحاولة</button></div>';$('#retryGames')?.addEventListener('click',()=>loadGames().catch(()=>{}));throw error}games=Array.isArray(data)?data:[];render();if(!games.length)$('#resultCount').textContent='لا توجد ألعاب منشورة — تحقق من حالة اللعبة في لوحة المدير'}
+let gamesLoadPromise=null;
+async function loadGames(){
+ if(gamesLoadPromise)return gamesLoadPromise;
+ gamesLoadPromise=(async()=>{
+  const host=$('#gameGrid');
+  try{
+   const {data,error}=await sb.from('games')
+    .select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,created_at')
+    .eq('status','published')
+    .order('created_at',{ascending:false})
+    .limit(200);
+   if(error)throw error;
+   games=Array.isArray(data)?data:[];
+   render();
+   if(!games.length)$('#resultCount').textContent='لا توجد ألعاب منشورة حالياً';
+   return games;
+  }catch(error){
+   console.error('Supabase games query failed:',error);
+   if(!games.length&&host){
+    host.innerHTML='<div class="empty-state"><span>⚠️</span><b>تعذر تحميل الألعاب</b><p>'+safe(error.message||'تحقق من صلاحيات قراءة الألعاب المنشورة في Supabase.')+'</p><button class="primary-btn" id="retryGames" type="button">إعادة المحاولة</button></div>';
+    $('#retryGames')?.addEventListener('click',()=>loadGames().catch(()=>{}));
+   }
+   throw error;
+  }finally{gamesLoadPromise=null}
+ })();
+ return gamesLoadPromise;
+}
 function watchGames(){
+ // Start polling even if the first database request fails; realtime is an additional fast path.
  if(!gamesChannel){
-  gamesChannel=sb.channel('published-games-live')
-   .on('postgres_changes',{event:'*',schema:'public',table:'games'},()=>loadGames().catch(e=>console.error('Live games refresh failed:',e)))
-   .subscribe(status=>{if(status==='SUBSCRIBED'){console.info('Live games updates connected');loadGames().catch(()=>{})}else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Live updates unavailable; automatic refresh remains active:',status)});
+  gamesChannel=sb.channel('published-games-live-v2')
+   .on('postgres_changes',{event:'*',schema:'public',table:'games'},payload=>{
+    console.info('Published games changed:',payload?.eventType||'change');
+    loadGames().catch(e=>console.error('Realtime games refresh failed:',e));
+   })
+   .subscribe(status=>{
+    if(status==='SUBSCRIBED'){
+     console.info('Live games updates connected');
+     loadGames().catch(()=>{});
+    }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+     console.warn('Realtime unavailable; polling remains active:',status);
+    }
+   });
  }
  if(!window.__mkgGamesPoll){
   window.__mkgGamesPoll=window.setInterval(()=>{
    if(!document.hidden)loadGames().catch(e=>console.error('Automatic games refresh failed:',e));
-  },4000);
+  },3000);
+ }
+ if(!window.__mkgGamesVisibilityHandler){
+  window.__mkgGamesVisibilityHandler=true;
+  document.addEventListener('visibilitychange',()=>{
+   if(!document.hidden)loadGames().catch(e=>console.error('Games refresh after tab focus failed:',e));
+  });
  }
 }
 $$('[data-view]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const v=b.dataset.view;currentView=v;$$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='new'?'ألعاب جديدة':v==='games'?'كل الألعاب':v==='popular'?'الأكثر لعباً':'مساهمات الزوار';const target=v==='home'?'#home':v==='popular'?'#popularGames':v==='contributions'?'#contributions':'#games';$(target)?.scrollIntoView({behavior:'smooth',block:'start'});if(v==='popular')loadPopular(rankMode);render()});
@@ -594,7 +637,12 @@ async function openContribution(){
  };
 }
 $('#contributeBtn')?.addEventListener('click',openContribution);$('#contributeGameBtn')?.addEventListener('click',openContribution);$('#suggestIdeaBtn')?.addEventListener('click',submitIdea);$('#rankAllBtn')?.addEventListener('click',()=>loadPopular('all'));$('#rankWeekBtn')?.addEventListener('click',()=>loadPopular('week'));
-loadGames().then(()=>{watchGames();loadVisitorCategories();loadPopular('all')}).catch(e=>{console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e)});
+// Install live updates and polling before the first fetch so a temporary startup error
+// cannot permanently stop the visitor page from discovering newly published games.
+watchGames();
+loadGames().catch(e=>console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e));
+loadVisitorCategories().catch(e=>console.warn('تعذر تحميل التصنيفات:',e));
+loadPopular('all').catch(e=>console.warn('تعذر تحميل الأكثر لعباً:',e));
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
