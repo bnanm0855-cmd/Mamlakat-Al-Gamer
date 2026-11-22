@@ -302,11 +302,43 @@ async function loadContributors(){
  const rows=[...groups.values()].sort((a,b)=>b.total-a.total);
  body.innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.total+'</td><td>'+x.published+'</td><td>'+x.pending+'</td><td>'+x.rejected+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد مساهمات ألعاب مسجلة بعد.</td></tr>';
 }
-function setPage(id){const page=document.getElementById(id);if(!page||!page.classList.contains('page')){console.warn('Admin page not found:',id);return} $('.page').forEach(v=>v.classList.toggle('active',v===page));$('.nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='categories'){loadCategories().then(renderCategories)}if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
-$('.nav')?.addEventListener('click',event=>{const button=event.target.closest('button[data-page]');if(button)setPage(button.dataset.page)});
+function setPage(id){
+ const page=document.getElementById(id);
+ if(!page||!page.classList.contains('page')){console.warn('Admin page not found:',id);return false}
+ // IMPORTANT: $ selects one element; $ returns the collection. Using $ with forEach
+ // previously threw a TypeError before the active page could change or the menu close.
+ $('.page').forEach(section=>section.classList.toggle('active',section===page));
+ $('.nav button[data-page]').forEach(button=>{
+  const active=button.dataset.page===id;
+  button.classList.toggle('active',active);
+  if(active)button.setAttribute('aria-current','page');
+  else button.removeAttribute('aria-current');
+ });
+ $('#sidebar')?.classList.remove('open');
+ $('#menuBtn')?.setAttribute('aria-expanded','false');
+ window.scrollTo({top:0,behavior:'instant'});
+ try{
+  if(id==='categories')loadCategories().then(renderCategories).catch(error=>{console.error(error);toast('تعذر تحميل التصنيفات: '+error.message)});
+  if(id==='contributors')loadContributors().catch(error=>{console.error(error);toast('تعذر تحميل المساهمين: '+error.message)});
+  if(id==='moderation')loadContributions().catch(error=>{console.error(error);toast('تعذر تحميل المساهمات: '+error.message)});
+  if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}
+ }catch(error){console.error('Page initialization failed:',id,error)}
+ return true;
+}
+$('.nav')?.addEventListener('click',event=>{
+ const button=event.target.closest('button[data-page]');
+ if(!button)return;
+ event.preventDefault();
+ setPage(button.dataset.page);
+});
 $('#addCategoryBtn')?.addEventListener('click',addCategory);
 $('#categoriesTable')?.addEventListener('click',event=>{const b=event.target.closest('[data-cat-action]');if(!b)return;if(b.dataset.catAction==='rename')renameCategory(b.dataset.name);else if(b.dataset.catAction==='delete')deleteCategory(b.dataset.name)});
-$('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
+$('#menuBtn')?.addEventListener('click',()=>{
+ const sidebar=$('#sidebar');
+ if(!sidebar)return;
+ const opened=sidebar.classList.toggle('open');
+ $('#menuBtn').setAttribute('aria-expanded',String(opened));
+});
 $('#fullscreenBtn')?.addEventListener('click',()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.());
 $('#mailBtn')?.addEventListener('click',()=>toast('لا توجد رسائل جديدة'));
 $('#notifyBtn')?.addEventListener('click',()=>toast('لا توجد إشعارات جديدة'));
