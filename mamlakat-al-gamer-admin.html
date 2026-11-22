@@ -286,6 +286,11 @@ async function loadPlayStats(mode='all'){
   const counts={};(data||[]).forEach(x=>counts[x.game_id]=Number(mode==='week'?x.plays_last_7_days:x.total_plays)||0);
   const ranked=db.games.filter(g=>g.rawStatus==='published').map(g=>({...g,plays:counts[g.id]||0})).sort((x,y)=>y.plays-x.plays).slice(0,10);
   host.innerHTML=ranked.length?ranked.map((g,i)=>'<div class="mkg-rank-card"><b class="mkg-rank-num">'+(i+1)+'</b>'+(g.thumb?'<img src="'+esc(g.thumb)+'" alt="">':'<span>🎮</span>')+'<div><b>'+esc(g.name)+'</b><div class="muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'لا توجد ألعاب منشورة.';
+   const homeRank=$('#rankList');
+   if(homeRank){
+    const top=ranked.slice(0,5);
+    homeRank.innerHTML=top.length?top.map((g,i)=>'<div class="rank"><span class="num">'+(i+1)+'</span>'+(g.thumb?'<img class="thumb" style="object-fit:cover" src="'+esc(g.thumb)+'" alt="">':'<span class="thumb">🎮</span>')+'<b>'+esc(g.name)+'</b><small>'+g.plays.toLocaleString('en-US')+'</small></div>').join(''):'<div class="empty-rank">لا توجد ألعاب منشورة بعد.</div>';
+   }
  }
 async function loadContributions(){
  const host=$('#contributionsList');if(!host)return;host.innerHTML='جارٍ تحميل المساهمات…';
