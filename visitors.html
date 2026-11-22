@@ -448,7 +448,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 </head>
 <body>
 <header class="topbar">
- <a class="brand" href="#home" aria-label="مملكة الجيمر"><span class="brand-mark">🎮</span><span><b>مملكة الجيمر</b><small>العب · استمتع · اكتشف</small></span></a>
+ <a class="brand" href="#home" aria-label="مملكة الجيمر"><span class="brand-mark" id="visitorBrandMark">🎮</span><span><b id="visitorBrandName">مملكة الجيمر</b><small>العب · استمتع · اكتشف</small></span></a>
  <form class="search" id="searchForm" role="search"><span class="search-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg></span><input id="searchInput" type="search" placeholder="ابحث في الألعاب..." autocomplete="off"><button aria-label="بحث">بحث</button></form>
  <div class="top-actions"><button class="round-btn" id="themeBtn" aria-label="تبديل المظهر">☾</button><button class="round-btn" id="menuBtn" aria-label="فتح القائمة">☰</button></div>
 </header>
@@ -503,6 +503,15 @@ function renderCategoryFilters(){
  host.querySelectorAll('[data-category-filter]').forEach(b=>b.addEventListener('click',()=>{selectedCategory=b.dataset.categoryFilter;renderCategoryFilters();render()}));
 }
 async function loadVisitorCategories(){const {data,error}=await sb.from('game_categories').select('name').order('name');if(!error)categoryNames=(data||[]).map(x=>x.name);renderCategoryFilters()}
+async function loadSiteSettings(){
+ const {data,error}=await sb.from('site_settings').select('channel_name,logo_path').eq('id',1).maybeSingle();
+ if(error){console.warn('تعذر تحميل هوية المنصة:',error.message);return}
+ if(!data)return;
+ const name=document.getElementById('visitorBrandName');if(name&&data.channel_name)name.textContent=data.channel_name;
+ const mark=document.getElementById('visitorBrandMark');
+ if(mark&&data.logo_path){const url=sb.storage.from('channel-assets').getPublicUrl(data.logo_path).data.publicUrl;mark.textContent='';mark.style.backgroundImage='url("'+url.replace(/"/g,'%22')+'")';mark.style.backgroundSize='cover';mark.style.backgroundPosition='center'}
+}
+
 function render(){renderCategoryFilters();const list=filtered();$('#resultCount').textContent=list.length?list.length+' لعبة':'لا توجد ألعاب منشورة بعد';$('#gameGrid').innerHTML=list.length?list.map(g=>'<article class="game-card"><div class="game-cover">'+(g.thumbnail_path?'<img data-thumb-path="'+safe(g.thumbnail_path)+'" src="'+safe(imageUrl(g.thumbnail_path))+'" alt="صورة '+safe(g.title)+'" loading="lazy">':'🎮')+'</div><div class="game-info"><h3>'+safe(g.title)+'</h3><p>'+safe(g.description||'اكتشف هذه اللعبة واستمتع بها.')+'</p><div class="game-meta"><span>'+safe(g.category||'ألعاب')+'</span><span>مملكة الجيمر</span></div><div class="game-actions"><button class="play-btn" data-play="'+g.id+'">العب الآن ▷</button><button data-download="'+g.id+'">تنزيل ↓</button></div></div></article>').join(''):'<div class="empty-state"><span>🕹️</span><b>'+(search?'لم نعثر على لعبة مطابقة':'لا توجد ألعاب منشورة حالياً')+'</b><p>'+(search?'جرّب كلمة بحث أخرى.':'ستظهر الألعاب هنا بعد أن ينشرها المدير من لوحة الإدارة.')+'</p></div>';
 $$('[data-play]').forEach(b=>b.onclick=()=>play(b.dataset.play));$$('[data-download]').forEach(b=>b.onclick=()=>download(b.dataset.download));
 $$('[data-thumb-path]').forEach(img=>{img.onerror=async()=>{const path=img.dataset.thumbPath;if(!path||img.dataset.signedFallback==='yes')return;img.dataset.signedFallback='yes';try{const {data,error}=await sb.storage.from('game-thumbnails').createSignedUrl(path,3600);if(error)throw error;img.src=data.signedUrl}catch(e){img.replaceWith(document.createTextNode('🎮'))}}})}
@@ -642,6 +651,7 @@ $('#contributeBtn')?.addEventListener('click',openContribution);$('#contributeGa
 watchGames();
 loadGames().catch(e=>console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e));
 loadVisitorCategories().catch(e=>console.warn('تعذر تحميل التصنيفات:',e));
+loadSiteSettings().catch(e=>console.warn('تعذر تحميل إعدادات المنصة:',e));
 loadPopular('all').catch(e=>console.warn('تعذر تحميل الأكثر لعباً:',e));
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
