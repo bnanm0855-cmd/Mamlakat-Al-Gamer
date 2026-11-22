@@ -98,28 +98,7 @@ html,body{background-color:var(--bg)}
 </style>
 
 
-<style id="mkg-reference-layout-correction">
-/* تصحيح اتجاه وتوزيع العناصر ليطابق الصورة المرجعية */
-.app{
-  direction:rtl;
-  grid-template-columns:218px minmax(0,1fr);
-  grid-template-rows:86px minmax(0,1fr);
-}
-.sidebar{grid-column:1;grid-row:2;border-left:1px solid #352160;border-right:0}
-.main{grid-column:2;grid-row:2;padding:15px 15px 24px}
-.top-left{flex-direction:row-reverse}
-@media(max-width:1250px){
-  .app{grid-template-columns:230px minmax(0,1fr)}
-  .main{grid-column:2;padding:18px 14px}
-}
-@media(max-width:800px){
-  .app{display:block}
-  .sidebar{position:fixed;right:0;left:auto;top:70px;width:min(290px,86vw);height:calc(100dvh - 70px);z-index:40;transform:translateX(110%);transition:transform .2s}
-  .sidebar.open{transform:translateX(0)}
-  .main{padding:18px 12px}
-  .top-left{flex-direction:row-reverse}
-}
-</style>
+
 </head>
 <body>
 <div class="app">
