@@ -456,35 +456,64 @@ let adminRankMode='all';
 $('#rankAllAdminBtn')?.addEventListener('click',()=>{adminRankMode='all';loadPlayStats('all')});
 $('#rankWeekAdminBtn')?.addEventListener('click',()=>{adminRankMode='week';loadPlayStats('week')});
 async function loadSiteSettings(){
- const {data,error}=await sb.from('site_settings').select('channel_name,logo_path').eq('id',1).maybeSingle();
- if(error)throw error;
- if(data){
-  if($('#channelName'))$('#channelName').value=data.channel_name||'مملكة الجيمر';
-  if(data.logo_path){const url=sb.storage.from('channel-assets').getPublicUrl(data.logo_path).data.publicUrl;if($('#logoPreview')){$('#logoPreview').style.backgroundImage='url("'+url.replace(/"/g,'%22')+'")';$('#logoPreview').textContent=''}}
- }
+ const [siteResult,platformResult]=await Promise.all([
+  sb.from('site_settings').select('channel_name,logo_path').eq('id',1).maybeSingle(),
+  sb.from('platform_settings').select('id,platform_name,auto_approve_games').order('updated_at',{ascending:false}).limit(1).maybeSingle()
+ ]);
+ if(siteResult.error)throw siteResult.error;
+ if(platformResult.error)throw platformResult.error;
+ const site=siteResult.data||{},platform=platformResult.data||{};
+ const name=site.channel_name||platform.platform_name||'مملكة الجيمر';
+ if($('#channelName'))$('#channelName').value=name;
+ const heading=$('.brand h1');if(heading)heading.textContent=name;
+ document.title=name+' — لوحة الإدارة';
+ if(site.logo_path){
+  const url=sb.storage.from('channel-assets').getPublicUrl(site.logo_path).data.publicUrl;
+  if($('#logoPreview')){$('#logoPreview').style.backgroundImage='url("'+url.replace(/"/g,'%22')+'")';$('#logoPreview').textContent=''}
+ }else if($('#logoPreview')){$('#logoPreview').style.backgroundImage='';$('#logoPreview').textContent='🎮'}
+ // Automatic approval remains locked until the visitor-upload RLS policy supports it safely.
+ if($('#autoToggle')){$('#autoToggle').checked=!!platform.auto_approve_games;$('#autoToggle').disabled=true}
+ if($('#autoText'))$('#autoText').textContent='الموافقة التلقائية مقفلة حالياً لحماية النشر؛ جميع ألعاب الزوار تمر بمراجعة المدير.';
 }
 async function saveSiteSettings(){
  const button=$('#saveSettings');if(button){button.disabled=true;button.textContent='جارٍ الحفظ...'}
+ let uploadedLogoPath=null;
  try{
   const name=$('#channelName')?.value.trim()||'مملكة الجيمر';
-  if(name.length>80)throw new Error('اسم المنصة يجب ألا يتجاوز 80 حرفاً');
+  if(!name||name.length>80)throw new Error('اسم المنصة مطلوب ويجب ألا يتجاوز 80 حرفاً');
   let logoPath=null;const file=$('#logoFile')?.files?.[0];
   if(file){
    if(file.size>5*1024*1024||!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type))throw new Error('اختر صورة PNG أو JPG أو WEBP أو SVG بحجم لا يتجاوز 5MB');
    const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
-   logoPath='branding/'+Date.now()+'.'+ext;
+   logoPath='branding/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
    const uploaded=await sb.storage.from('channel-assets').upload(logoPath,file,{upsert:false,contentType:file.type});
-   if(uploaded.error)throw uploaded.error;
+   if(uploaded.error)throw uploaded.error;uploadedLogoPath=logoPath;
   }
-  const patch={channel_name:name,updated_at:new Date().toISOString()};if(logoPath)patch.logo_path=logoPath;
-  const saved=await sb.from('site_settings').update(patch).eq('id',1);if(saved.error)throw saved.error;
-  if($('#logoPreview')){if(logoPath){$('#logoPreview').style.backgroundImage='url("'+sb.storage.from('channel-assets').getPublicUrl(logoPath).data.publicUrl.replace(/"/g,'%22')+'")';$('#logoPreview').textContent=''}else if(!$('#logoPreview').style.backgroundImage)$('#logoPreview').textContent='🎮'}
-  toast('تم حفظ إعدادات المنصة بنجاح');
- }catch(error){toast('تعذر حفظ الإعدادات: '+(error.message||error))}
- finally{if(button){button.disabled=false;button.textContent='حفظ'}}
+  const updatedAt=new Date().toISOString();
+  const sitePatch={id:1,channel_name:name,updated_at:updatedAt};if(logoPath)sitePatch.logo_path=logoPath;
+  const siteSaved=await sb.from('site_settings').upsert(sitePatch,{onConflict:'id'}).select('id,channel_name,logo_path').single();
+  if(siteSaved.error)throw siteSaved.error;
+  const {data:platform,error:platformReadError}=await sb.from('platform_settings').select('id').order('updated_at',{ascending:false}).limit(1).maybeSingle();
+  if(platformReadError)throw platformReadError;
+  const platformWrite=platform
+   ? await sb.from('platform_settings').update({platform_name:name,updated_at:updatedAt}).eq('id',platform.id)
+   : await sb.from('platform_settings').insert({platform_name:name,auto_approve_games:false,updated_at:updatedAt});
+  if(platformWrite.error)throw platformWrite.error;
+  const heading=$('.brand h1');if(heading)heading.textContent=name;
+  document.title=name+' — لوحة الإدارة';
+  if($('#logoPreview')){
+   if(logoPath){const url=sb.storage.from('channel-assets').getPublicUrl(logoPath).data.publicUrl;$('#logoPreview').style.backgroundImage='url("'+url.replace(/"/g,'%22')+'")';$('#logoPreview').textContent=''}
+   else if(!siteSaved.data.logo_path){$('#logoPreview').style.backgroundImage='';$('#logoPreview').textContent='🎮'}
+  }
+  if($('#logoFile'))$('#logoFile').value='';
+  toast('تم حفظ اسم المنصة والشعار ومزامنة إعدادات المنصة بنجاح');
+ }catch(error){
+  if(uploadedLogoPath)await sb.storage.from('channel-assets').remove([uploadedLogoPath]).catch(()=>{});
+  toast('تعذر حفظ الإعدادات: '+(error.message||error));
+ }finally{if(button){button.disabled=false;button.textContent='حفظ'}}
 }
-if($('#autoToggle')){$('#autoToggle').checked=false;$('#autoToggle').disabled=true}
-if($('#autoText'))$('#autoText').textContent='متوقفة — طلبات الزوار تحتاج موافقة المدير قبل النشر';
+if($('#autoToggle')){$('#autoToggle').disabled=true}
+if($('#autoText'))$('#autoText').textContent='يتم تحميل حالة الموافقة من إعدادات المنصة؛ الموافقة التلقائية مقفلة حتى اعتماد سياسة آمنة.';
 $('#saveSettings')?.addEventListener('click',saveSiteSettings);
 $('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),g=db.games.find(x=>x.name.toLowerCase().includes(q));if(g){setPage('games');toast('تم العثور على '+g.name)}else toast('لم يتم العثور على لعبة مطابقة')}});
 function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','غير مفعّلة — لا يوجد سجل جلسات مشترك');put('sessionTotal','غير متاح');put('sessionActive','غير متاح');put('sessionAverage','غير متاح');put('sessionLongest','غير متاح');put('sessionTotalTime','غير متاح');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لم يتم إعداد تتبع جلسات الزوار بعد. الأرقام المحلية القديمة لا تمثل زوار الموقع.</td></tr>'}
