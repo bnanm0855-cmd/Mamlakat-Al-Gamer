@@ -512,7 +512,7 @@ function watchGames(){
   },4000);
  }
 }
-$('[data-view]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const v=b.dataset.view;currentView=v;$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='new'?'ألعاب جديدة':v==='games'?'كل الألعاب':v==='popular'?'الأكثر لعباً':'مساهمات الزوار';const target=v==='home'?'#home':v==='popular'?'#popularGames':v==='contributions'?'#contributions':'#games';$(target)?.scrollIntoView({behavior:'smooth',block:'start'});if(v==='popular')loadPopular(rankMode);render()});
+$$('[data-view]').forEach(b=>b.onclick=()=>{if(b.disabled)return;const v=b.dataset.view;currentView=v;$$('[data-view]').forEach(x=>x.classList.toggle('active',x===b));$('#sectionTitle').textContent=v==='new'?'ألعاب جديدة':v==='games'?'كل الألعاب':v==='popular'?'الأكثر لعباً':'مساهمات الزوار';const target=v==='home'?'#home':v==='popular'?'#popularGames':v==='contributions'?'#contributions':'#games';$(target)?.scrollIntoView({behavior:'smooth',block:'start'});if(v==='popular')loadPopular(rankMode);render()});
 $('#searchForm').onsubmit=e=>{e.preventDefault();search=$('#searchInput').value.trim();render();$('#games').scrollIntoView({behavior:'smooth'})};$('#searchInput').oninput=e=>{search=e.target.value.trim();render()};
 $('#themeBtn').onclick=()=>{document.body.classList.toggle('light-mode');$('#themeBtn').textContent=document.body.classList.contains('light-mode')?'☀':'☾'};
 $('#year').textContent=new Date().getFullYear();const modal=$('#modal');$('#closeModal').onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};document.addEventListener('keydown',e=>{
