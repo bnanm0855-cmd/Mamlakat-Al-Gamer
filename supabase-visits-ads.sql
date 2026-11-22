@@ -50,6 +50,21 @@ drop policy if exists "Admins delete platform ad images" on storage.objects;
 create policy "Admins delete platform ad images" on storage.objects
  for delete to authenticated using (bucket_id='platform-ads' and public.is_mkg_admin());
 
+-- صلاحيات شعار المنصة: القراءة عامة والرفع والتعديل والحذف للمدير فقط.
+drop policy if exists "Public reads channel branding" on storage.objects;
+create policy "Public reads channel branding" on storage.objects
+ for select to anon,authenticated using (bucket_id='channel-assets');
+drop policy if exists "Admins upload channel branding" on storage.objects;
+create policy "Admins upload channel branding" on storage.objects
+ for insert to authenticated with check (bucket_id='channel-assets' and public.is_mkg_admin());
+drop policy if exists "Admins update channel branding" on storage.objects;
+create policy "Admins update channel branding" on storage.objects
+ for update to authenticated using (bucket_id='channel-assets' and public.is_mkg_admin())
+ with check (bucket_id='channel-assets' and public.is_mkg_admin());
+drop policy if exists "Admins delete channel branding" on storage.objects;
+create policy "Admins delete channel branding" on storage.objects
+ for delete to authenticated using (bucket_id='channel-assets' and public.is_mkg_admin());
+
 create or replace function public.start_visitor_session(p_visitor_id uuid)
 returns uuid
 language plpgsql
