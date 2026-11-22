@@ -327,7 +327,7 @@ function setPage(id){
 }
 // Bind each navigation control directly, then keep a document capture fallback.
 window.setAdminPage=setPage;
-$('.sidebar .nav button[data-page]').forEach(button=>{
+$$('.sidebar .nav button[data-page]').forEach(button=>{
  button.type='button';
  button.addEventListener('click',event=>{
   event.preventDefault();
