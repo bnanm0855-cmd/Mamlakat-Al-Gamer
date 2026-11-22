@@ -10,6 +10,24 @@ create table if not exists public.game_plays (
 );
 create index if not exists game_plays_game_played_idx on public.game_plays(game_id, played_at desc);
 
+create table if not exists public.game_categories (
+ name text primary key check (char_length(trim(name)) between 1 and 60),
+ created_at timestamptz not null default now()
+);
+alter table public.game_categories enable row level security;
+drop policy if exists "Public read game categories" on public.game_categories;
+create policy "Public read game categories" on public.game_categories
+ for select to anon, authenticated using (true);
+drop policy if exists "Admins manage game categories" on public.game_categories;
+create policy "Admins manage game categories" on public.game_categories
+ for all to authenticated using (public.is_mkg_admin()) with check (public.is_mkg_admin());
+grant select on public.game_categories to anon, authenticated;
+grant insert, update, delete on public.game_categories to authenticated;
+insert into public.game_categories(name)
+select distinct trim(category) from public.games
+where category is not null and trim(category) <> ''
+on conflict(name) do nothing;
+
 alter table public.game_plays enable row level security;
 drop policy if exists "Anyone can record game plays" on public.game_plays;
 create policy "Anyone can record game plays" on public.game_plays
@@ -26,11 +44,13 @@ revoke select on public.game_plays from anon, authenticated;
 grant insert on public.game_plays to anon, authenticated;
 
 -- Safe aggregate endpoint: exposes counts per published game, never visitor IDs or event rows.
-create or replace function public.get_game_play_stats()
+drop function if exists public.get_game_play_stats();
+create function public.get_game_play_stats()
 returns table (
  game_id uuid,
  total_plays bigint,
- plays_last_7_days bigint
+ plays_last_7_days bigint,
+ unique_players bigint
 )
 language sql
 stable
@@ -40,7 +60,8 @@ as $
  select
   p.game_id,
   count(*)::bigint as total_plays,
-  count(*) filter (where p.played_at >= now() - interval '7 days')::bigint as plays_last_7_days
+  count(*) filter (where p.played_at >= now() - interval '7 days')::bigint as plays_last_7_days,
+  count(distinct p.visitor_id)::bigint as unique_players
  from public.game_plays p
  inner join public.games g on g.id = p.game_id
  where g.status = 'published'
@@ -72,8 +93,10 @@ drop policy if exists "Admins update suggestions" on public.visitor_contribution
 create policy "Admins update suggestions" on public.visitor_contributions
  for update to authenticated using (public.is_mkg_admin()) with check (public.is_mkg_admin());
 
-grant select, insert on public.game_plays to anon, authenticated;
-grant select, insert, update on public.visitor_contributions to anon, authenticated;
+grant insert on public.game_plays to anon, authenticated;
+grant select, insert, update on public.visitor_contributions to authenticated;
+grant insert on public.visitor_contributions to anon;
+revoke select on public.game_plays from anon, authenticated;
 grant usage on schema public to anon, authenticated;
 
 commit;
