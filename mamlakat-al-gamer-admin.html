@@ -123,7 +123,6 @@ html,body{background-color:var(--bg)}
     <button data-page="contributors"><span class="ico" data-icon="users"></span>المساهمون</button>
     <button data-page="moderation"><span class="ico" data-icon="users"></span>مساهمات الزوار</button>
     <button data-page="analytics"><span class="ico" data-icon="chart"></span>الإحصائيات</button>
-    <button data-page="ads"><span class="ico" data-icon="settings"></span>إعلانات المنصة</button>
     <div class="nav-divider"></div><div class="side-label">النظام</div>
     <button data-page="settings"><span class="ico" data-icon="settings"></span>إعدادات المنصة</button>
   </nav>
@@ -166,7 +165,6 @@ html,body{background-color:var(--bg)}
  </div>
  <div class="table"><table><thead><tr><th>بداية الزيارة</th><th>آخر نشاط</th><th>المدة</th><th>الحالة</th></tr></thead><tbody id="visitorSessionsTable"><tr><td colspan="4" class="empty">جارٍ تحميل الزيارات…</td></tr></tbody></table></div>
 </div></section>
-<section class="page" id="ads"><div class="head"><div><h2>إعلانات المنصة</h2><p>إعلانات ترويجية خاصة بمملكة الجيمر تظهر للزوار</p></div><button class="btn" id="addAdBtn">＋ إضافة إعلان</button></div><div id="adsList" class="settings-grid"><div class="panel placeholder">جارٍ تحميل الإعلانات…</div></div></section>
 <section class="page" id="settings"><div class="head"><div><h2>إعدادات المنصة</h2><p>هوية مملكة الجيمر وقواعد النشر</p></div><button class="btn" id="saveSettings">حفظ</button></div><div class="settings-grid"><div class="panel setting"><h3>⚡ الموافقة على ألعاب الزوار</h3><div class="switchrow"><div><b>مراجعة ألعاب الزوار</b><small id="autoText">مراجعة يدوية — لا تُنشر اللعبة قبل موافقة المدير</small></div><span class="status">مفعّلة</span></div><p class="muted" style="line-height:2">كل لعبة يرفعها الزائر تنتظر موافقتك وتجربتك قبل ظهورها للزوار.</p></div><div class="panel setting"><h3>🎨 هوية المنصة</h3><div class="field"><label for="channelName">اسم المنصة</label><input id="channelName" type="text" maxlength="80" value="مملكة الجيمر"></div><div class="field"><label for="logoFile">شعار المنصة</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div><p class="muted">يتم حفظ الاسم والشعار في إعدادات الموقع المشتركة مع واجهة الزوار.</p></div><div class="panel setting"><h3>🌐 واجهة الزوار</h3><p class="muted" style="line-height:2">التصفح واللعب بدون حساب. رفع اللعبة متاح للزوار، وتدخل الألعاب للمراجعة قبل النشر ما لم تفعل الموافقة التلقائية.</p><span class="status">متفق عليه</span></div><div class="panel setting"><h3>🔐 الأمان</h3><p class="muted" style="line-height:2">هذه اللوحة مستقلة عن واجهة الزوار. مفاتيح Supabase السرية لا توضع داخل HTML، والصلاحيات النهائية ستفرض في الخلفية.</p><span class="status">حماية وصلاحيات Supabase</span></div><div class="panel setting" style="grid-column:1/-1;border-color:#8b2949"><h3>🧹 مسح بيانات المنصة</h3><p class="muted" style="line-height:2">يحذف الألعاب والتصنيفات والطلبات والمساهمات والإحصائيات وسجلات الزيارات والملفات التابعة لها. سيبقى حساب المدير وإعدادات المنصة واسمها وشعارها كما هي. لا يمكن التراجع عن هذه العملية.</p><button type="button" class="btn" id="wipePlatformBtn" style="background:linear-gradient(135deg,#b42345,#76152e);border-color:#e34b69">مسح جميع بيانات المنصة</button></div></div></section>
 </main></div>
 <div class="modal" id="modal"><div class="modal-box" id="modalBox"></div></div><div class="toast" id="toast"></div>
@@ -357,7 +355,6 @@ function setPage(id){
   if(id==='contributors')loadContributors().catch(error=>{console.error(error);toast('تعذر تحميل المساهمين: '+error.message)});
   if(id==='moderation')loadContributions().catch(error=>{console.error(error);toast('تعذر تحميل المساهمات: '+error.message)});
   if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode);loadVisitorSessions()}
-  if(id==='ads')loadAds()
  }catch(error){console.error('Page initialization failed:',id,error)}
  return true;
 }
