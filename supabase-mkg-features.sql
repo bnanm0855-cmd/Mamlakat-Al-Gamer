@@ -56,7 +56,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
  select
   p.game_id,
   count(*)::bigint as total_plays,
@@ -66,7 +66,7 @@ as $
  inner join public.games g on g.id = p.game_id
  where g.status = 'published'
  group by p.game_id;
-$;
+$$;
 
 revoke all on function public.get_game_play_stats() from public;
 grant execute on function public.get_game_play_stats() to anon, authenticated;
