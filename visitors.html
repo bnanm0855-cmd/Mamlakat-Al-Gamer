@@ -459,9 +459,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
    <a class="nav-link active" href="#home" data-view="home"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span> الرئيسية</a>
    <a class="nav-link" href="#games" data-view="games"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span> كل الألعاب</a>
    <a class="nav-link" href="#new" data-view="new"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/><path d="m19 14 1.1 2.9L23 18l-2.9 1.1L19 22l-1.1-2.9L15 18l2.9-1.1z"/></svg></span> ألعاب جديدة</a>
-   <button class="nav-link is-soon" type="button" disabled aria-disabled="true"><span class="nav-icon">↗</span><span class="nav-link-text">الأكثر لعباً</span><span class="coming-soon-badge">قريباً</span></button>
+   <a class="nav-link" href="#popularGames" data-view="popular"><span class="nav-icon">↗</span><span class="nav-link-text">الأكثر لعباً</span></a>
    <button class="nav-link" type="button" id="contributeBtn"><span class="nav-icon">＋</span><span class="nav-link-text">إرسال لعبة للمراجعة</span><span class="coming-soon-badge">متاح</span></button>
-   <button class="nav-link is-soon" type="button" disabled aria-disabled="true"><span class="nav-icon">✦</span><span class="nav-link-text">مساهمات الزوار</span><span class="coming-soon-badge">قريباً</span></button>
+   <a class="nav-link" href="#contributions" data-view="contributions"><span class="nav-icon">✦</span><span class="nav-link-text">مساهمات الزوار</span></a>
 </nav>
   <div class="sidebar-note"><span>✨</span><b>المزيد من المزايا قادم</b><small>يمكنك إرسال لعبة HTML وصورتها ليراجعها المدير.</small></div>
  </aside>
@@ -476,7 +476,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
    <div class="game-grid" id="gameGrid"><div class="empty-state"><span>🕹️</span><b>لا توجد ألعاب منشورة حالياً</b><p>ستظهر الألعاب هنا فور نشرها من لوحة الإدارة.</p></div></div>
   </section>
   <section class="mkg-feature" id="popularGames"><span class="section-kicker">الألعاب الأكثر شعبية</span><h2>🏆 الأكثر لعباً</h2><p>ترتيب الألعاب حسب عدد مرات تشغيلها، ويمكنك التبديل بين الإجمالي وآخر 7 أيام.</p><div class="mkg-actions"><button type="button" id="rankAllBtn">الأكثر لعباً إجمالاً</button><button type="button" id="rankWeekBtn">الأكثر لعباً هذا الأسبوع</button></div><div class="mkg-rank-list" id="visitorRankList"><p class="mkg-muted">جارٍ تحميل الترتيب…</p></div></section>
-  <section class="share-banner"><div class="share-emoji">🕹️</div><div class="share-copy"><b>ساهم في تطوير مملكة الجيمر</b><span>أرسل لعبة جديدة أو شاركنا اقتراحاً لتحسين المنصة أو إحدى الألعاب.</span><div class="mkg-actions" style="margin-top:10px"><button type="button" id="contributeGameBtn">إرسال لعبة</button><button type="button" id="suggestIdeaBtn">إرسال اقتراح</button></div></div></section>
+  <section class="share-banner" id="contributions"><div class="share-emoji">🕹️</div><div class="share-copy"><b>ساهم في تطوير مملكة الجيمر</b><span>أرسل لعبة جديدة أو شاركنا اقتراحاً لتحسين المنصة أو إحدى الألعاب.</span><div class="mkg-actions" style="margin-top:10px"><button type="button" id="contributeGameBtn">إرسال لعبة</button><button type="button" id="suggestIdeaBtn">إرسال اقتراح</button></div></div></section>
   <footer><span>© <span id="year"></span> مملكة الجيمر</span><span>صُنعت بشغف لعشاق الألعاب 💜</span></footer>
  </main>
 </div>
@@ -533,14 +533,13 @@ function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hi
 const visitorId=(()=>{try{let x=localStorage.getItem('mkg_visitor_id');if(!x){x=crypto.randomUUID();localStorage.setItem('mkg_visitor_id',x)}return x}catch(_){return crypto.randomUUID()}})();
 async function recordPlay(gameId){try{const {error}=await sb.from('game_plays').insert({game_id:gameId,visitor_id:visitorId});if(error)console.warn('Play counter unavailable; apply Supabase setup SQL:',error.message)}catch(e){console.warn('Play counter failed:',e)}}
 async function loadPopular(mode='all'){
- rankMode=mode;const host=$('#visitorRankList');if(!host)return;host.innerHTML='<p class="mkg-muted">جارٍ تحميل الترتيب…</p>';
- let q=sb.from('game_plays').select('game_id,played_at');if(mode==='week'){const since=new Date(Date.now()-7*86400000).toISOString();q=q.gte('played_at',since)}
- const {data,error}=await q;
- if(error){host.innerHTML='<p class="mkg-muted">إحصائيات اللعب تحتاج تطبيق ملف إعداد Supabase المرفق في المستودع.</p>';return}
- const counts={};(data||[]).forEach(x=>counts[x.game_id]=(counts[x.game_id]||0)+1);
- const sorted=games.map(g=>({...g,plays:counts[g.id]||0})).sort((a,b)=>b.plays-a.plays).slice(0,6);
- host.innerHTML=sorted.length?sorted.map((g,i)=>'<div class="mkg-rank-card"><span class="mkg-rank-num">'+(i+1)+'</span>'+(g.thumbnail_path?'<img src="'+safe(imageUrl(g.thumbnail_path))+'" alt="">':'<span style="font-size:28px">🎮</span>')+'<div><b>'+safe(g.title)+'</b><div class="mkg-muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'<p class="mkg-muted">لا توجد ألعاب منشورة بعد.</p>';
-}
+  rankMode=mode;const host=$('#visitorRankList');if(!host)return;host.innerHTML='<p class="mkg-muted">جارٍ تحميل الترتيب…</p>';
+  const {data,error}=await sb.rpc('get_game_play_stats');
+  if(error){host.innerHTML='<p class="mkg-muted">تعذر تحميل ترتيب اللعب: '+safe(error.message)+'</p>';return}
+  const counts={};(data||[]).forEach(x=>counts[x.game_id]=Number(mode==='week'?x.plays_last_7_days:x.total_plays)||0);
+  const sorted=games.map(g=>({...g,plays:counts[g.id]||0})).sort((a,b)=>b.plays-a.plays).slice(0,6);
+  host.innerHTML=sorted.length?sorted.map((g,i)=>'<div class="mkg-rank-card"><span class="mkg-rank-num">'+(i+1)+'</span>'+(g.thumbnail_path?'<img src="'+safe(imageUrl(g.thumbnail_path))+'" alt="">':'<span style="font-size:28px">🎮</span>')+'<div><b>'+safe(g.title)+'</b><div class="mkg-muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'<p class="mkg-muted">لا توجد ألعاب منشورة بعد.</p>';
+ }
 async function submitIdea(){
  $('#modalContent').innerHTML='<h2 id="modalTitle">إرسال اقتراح</h2><p class="modal-desc">اقتراحك يصل إلى لوحة المدير للمراجعة. لا تضع معلومات شخصية حساسة.</p><form id="ideaForm"><div class="form-field"><label>اسمك (اختياري)</label><input id="ideaName" maxlength="60"></div><div class="form-field"><label>عنوان الاقتراح *</label><input id="ideaTitle" maxlength="120" required></div><div class="form-field"><label>التفاصيل *</label><textarea id="ideaDetails" rows="5" maxlength="2000" required></textarea></div><button class="primary-btn form-submit">إرسال الاقتراح</button></form>';
  modal.classList.add('show');modal.setAttribute('aria-hidden','false');
