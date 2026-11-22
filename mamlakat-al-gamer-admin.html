@@ -139,12 +139,12 @@ html,body{background-color:var(--bg)}
     <div class="stat pink"><div class="stat-icon">📨</div><div class="stat-info"><strong id="pendingSuggestions">—</strong><span>اقتراحات تنتظر المراجعة</span><small>من مساهمات الزوار</small></div></div>
   </div>
   <div class="grid">
-    <div class="panel"><div class="panel-head"><h3>▥ إحصائيات اللعب</h3><select class="select"><option>آخر 30 يوم</option><option>آخر 7 أيام</option><option>آخر 12 شهر</option></select></div><div class="chart"><div class="chart-empty"><div><div style="font-size:36px">📊</div><b>لا توجد بيانات تجريبية</b><span>سيظهر مخطط الزوار والمشاهدات ومرات اللعب هنا بعد ربط واجهة الزوار بقاعدة البيانات.</span></div></div></div><div class="legend"><span><i style="background:#d20aff"></i>زوار عائدون</span><span><i style="background:#09aaff"></i>زوار جدد</span></div></div>
+    <div class="panel"><div class="panel-head"><h3>▥ إحصائيات اللعب</h3><select class="select" id="playChartRange"><option value="30">آخر 30 يوم</option><option value="7">آخر 7 أيام</option><option value="365">آخر 12 شهر</option></select></div><div class="chart" id="playChart"><div class="chart-empty"><div>جارٍ تحميل إحصائيات اللعب…</div></div></div><div class="legend"><span><i style="background:#d20aff"></i>مرات اللعب</span><span><i style="background:#09aaff"></i>لاعبون فريدون</span></div></div>
     <div class="panel"><div class="panel-head"><h3>⚡ نشاط المنصة</h3><span class="muted">مباشر</span></div><div class="activity-list" id="activityList"><div class="empty-mini">لا يوجد نشاط بعد.</div></div></div>
     <div class="panel rank-panel"><div class="panel-head"><h3>🏆 أكثر الألعاب لعباً</h3><span style="color:#ffc83d">★</span></div><div class="rank-list" id="rankList"><div class="empty-rank">لا توجد ألعاب بعد.</div></div></div>
   </div>
   <div class="lower">
-    <div class="panel mini"><div><b>🛡️ حالة المنصة</b><small>لا توجد خدمات خلفية متصلة بعد</small></div><span class="status">محلية</span></div>
+    <div class="panel mini"><div><b>🛡️ حالة المنصة</b><small>قاعدة البيانات والتخزين متصلان عبر Supabase</small></div><span class="status">متصلة</span></div>
     <div class="panel mini"><div><b>📥 طلبات النشر</b><small id="requestSummary">لا توجد طلبات.</small></div><span class="bigico">✦</span></div>
     <div class="panel mini"><div><b>🎮 الألعاب والتعديلات</b><small id="gameSummary">لا توجد ألعاب منشورة.</small></div><span class="bigico">◈</span></div>
   </div>
@@ -237,17 +237,47 @@ async function deleteCategory(name){
 
 let cachedPlayRows=[];
 async function loadDashboardMetrics(){
- const {data,error}=await sb.rpc('get_game_play_stats');
  const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
- if(error){console.warn('Play metrics unavailable:',error.message);put('totalPlayEvents','—');put('weeklyPlayEvents','—');put('analyticsTotalPlays','—');put('analyticsWeekPlays','—');put('uniquePlayers','—');put('analyticsUniquePlayers','—');return}
- const rows=Array.isArray(data)?data:[];
- const total=rows.reduce((sum,x)=>sum+(Number(x.total_plays)||0),0);
- const weekly=rows.reduce((sum,x)=>sum+(Number(x.plays_last_7_days)||0),0);
- const unique=rows.reduce((sum,x)=>sum+(Number(x.unique_players)||0),0);
- put('totalPlayEvents',total);put('weeklyPlayEvents',weekly);put('analyticsTotalPlays',total);put('analyticsWeekPlays',weekly);
- put('uniquePlayers',unique);put('analyticsUniquePlayers',unique);
- const {count,error:contribError}=await sb.from('visitor_contributions').select('id',{count:'exact',head:true}).eq('status','pending');
- if(!contribError)put('pendingSuggestions',count||0);
+ const [statsResult,contribResult]=await Promise.all([
+  sb.rpc('get_game_play_stats'),
+  sb.from('visitor_contributions').select('id',{count:'exact',head:true}).eq('status','pending')
+ ]);
+ if(statsResult.error){
+  console.warn('Play metrics unavailable:',statsResult.error.message);
+  ['totalPlayEvents','weeklyPlayEvents','analyticsTotalPlays','analyticsWeekPlays','uniquePlayers','analyticsUniquePlayers'].forEach(id=>put(id,'—'));
+ }else{
+  const rows=Array.isArray(statsResult.data)?statsResult.data:[];
+  const total=rows.reduce((sum,x)=>sum+(Number(x.total_plays)||0),0);
+  const weekly=rows.reduce((sum,x)=>sum+(Number(x.plays_last_7_days)||0),0);
+  const unique=rows.reduce((sum,x)=>sum+(Number(x.unique_players)||0),0);
+  put('totalPlayEvents',total);put('weeklyPlayEvents',weekly);put('analyticsTotalPlays',total);put('analyticsWeekPlays',weekly);
+  put('uniquePlayers',unique);put('analyticsUniquePlayers',unique);
+ }
+ if(!contribResult.error)put('pendingSuggestions',contribResult.count||0);
+ await loadPlayTimeline(Number($('#playChartRange')?.value||30));
+}
+function renderPlayChart(rows,days){
+ const host=$('#playChart');if(!host)return;
+ const start=new Date();start.setHours(0,0,0,0);start.setDate(start.getDate()-(days-1));
+ const buckets=new Map();
+ for(let i=0;i<days;i++){const d=new Date(start);d.setDate(start.getDate()+i);buckets.set(d.toISOString().slice(0,10),{plays:0,players:new Set()})}
+ rows.forEach(row=>{const date=new Date(row.played_at);if(Number.isNaN(date.getTime()))return;const bucket=buckets.get(date.toISOString().slice(0,10));if(bucket){bucket.plays++;if(row.visitor_id)bucket.players.add(row.visitor_id)}});
+ const values=Array.from(buckets.entries()).map(([date,b])=>({date,plays:b.plays,players:b.players.size}));
+ if(!rows.length){host.innerHTML='<div class="chart-empty"><div><div style="font-size:36px">📊</div><b>لا توجد مرات لعب مسجلة بعد</b><span>سيظهر المخطط تلقائياً عند بدء الزوار بتشغيل الألعاب المنشورة.</span></div></div>';return}
+ const max=Math.max(1,...values.flatMap(x=>[x.plays,x.players])),w=720,h=250,left=42,right=12,top=14,bottom=30,iw=w-left-right,ih=h-top-bottom;
+ const point=(v,i)=>((left+(values.length===1?iw/2:i*iw/(values.length-1))).toFixed(1)+','+(top+ih-(v/max)*ih).toFixed(1));
+ const plays=values.map((x,i)=>point(x.plays,i)).join(' '),players=values.map((x,i)=>point(x.players,i)).join(' ');
+ const grid=[0,.25,.5,.75,1].map(t=>{const y=top+ih-t*ih;return '<line x1="'+left+'" y1="'+y+'" x2="'+(w-right)+'" y2="'+y+'" stroke="#30234f"/><text x="'+(left-9)+'" y="'+(y+4)+'" fill="#8f86aa" font-size="10" text-anchor="end">'+Math.round(max*t)+'</text>'}).join('');
+ const indexes=[0,Math.floor((values.length-1)/3),Math.floor(2*(values.length-1)/3),values.length-1].filter((v,i,a)=>a.indexOf(v)===i);
+ const labels=indexes.map(i=>'<text x="'+(left+(values.length===1?iw/2:i*iw/(values.length-1)))+'" y="'+(h-7)+'" fill="#9e95bb" font-size="10" text-anchor="middle">'+values[i].date.slice(5).replace('-','/')+'</text>').join('');
+ host.innerHTML='<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="مخطط مرات اللعب واللاعبين الفريدين">'+grid+'<polyline points="'+plays+'" fill="none" stroke="#d20aff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><polyline points="'+players+'" fill="none" stroke="#09aaff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+labels+'</svg>';
+}
+async function loadPlayTimeline(days=30){
+ const host=$('#playChart');if(!host)return;
+ const since=new Date();since.setHours(0,0,0,0);since.setDate(since.getDate()-(days-1));
+ const {data,error}=await sb.from('game_plays').select('played_at,visitor_id').gte('played_at',since.toISOString()).order('played_at',{ascending:true}).limit(10000);
+ if(error){console.warn('Play timeline unavailable:',error.message);host.innerHTML='<div class="chart-empty"><div><b>تعذر تحميل المخطط</b><span>'+esc(error.message)+'</span></div></div>';return}
+ renderPlayChart(Array.isArray(data)?data:[],days);
 }
 async function loadPlayStats(mode='all'){
   const host=$('#adminPopularList');if(!host)return;
@@ -343,6 +373,7 @@ document.addEventListener('click',event=>{
  event.stopPropagation();
  setPage(button.dataset.page);
 },true);
+$('#playChartRange')?.addEventListener('change',()=>loadPlayTimeline(Number($('#playChartRange').value||30)));
 $('#addCategoryBtn')?.addEventListener('click',addCategory);
 $('#categoriesTable')?.addEventListener('click',event=>{const b=event.target.closest('[data-cat-action]');if(!b)return;if(b.dataset.catAction==='rename')renameCategory(b.dataset.name);else if(b.dataset.catAction==='delete')deleteCategory(b.dataset.name)});
 $('#menuBtn')?.addEventListener('click',()=>{
