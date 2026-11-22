@@ -8,10 +8,11 @@
 ## الإعداد الأولي (مرة واحدة)
 1. افتح [مشروع Supabase](https://supabase.com/dashboard/project/pnypwxcfhfkorwuvcemx).
 2. افتح **SQL Editor** ثم الصق كامل محتوى `supabase-setup.sql` وشغّله.
-3. من **Authentication → Providers** تأكد أن تسجيل الدخول بالبريد وكلمة المرور مفعّل.
-4. من **Authentication → Users** أنشئ حساب المدير ببريد إلكتروني وكلمة مرور.
-5. انسخ UUID لحساب المدير.
-6. في SQL Editor نفّذ الأمر التالي بعد وضع UUID الحقيقي مكان القيمة المؤقتة:
+3. بعده افتح `supabase-mkg-features.sql` وشغّله أيضاً لتفعيل عدادات اللعب ومساهمات الزوار والتصنيفات القابلة للإدارة. عند تحديث هذا الملف مستقبلاً، شغّل نسخته الجديدة مرة أخرى.
+4. من **Authentication → Providers** تأكد أن تسجيل الدخول بالبريد وكلمة المرور مفعّل.
+5. من **Authentication → Users** أنشئ حساب المدير ببريد إلكتروني وكلمة مرور.
+6. انسخ UUID لحساب المدير.
+7. في SQL Editor نفّذ الأمر التالي بعد وضع UUID الحقيقي مكان القيمة المؤقتة:
 
 ```sql
 insert into public.user_roles (user_id, role)
@@ -19,7 +20,7 @@ values ('PASTE-AUTH-USER-UUID-HERE', 'admin')
 on conflict (user_id) do update set role = excluded.role;
 ```
 
-7. ارفع `visitors.html` و`mamlakat-al-gamer-admin.html` إلى الاستضافة في المسار نفسه.
+8. ارفع `visitors.html` و`mamlakat-al-gamer-admin.html` إلى الاستضافة في المسار نفسه.
 
 ## طريقة الاستخدام
 1. افتح لوحة الإدارة وسجّل الدخول بحساب المدير الذي أضفته في `user_roles`.
