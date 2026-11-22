@@ -46,6 +46,57 @@
 @media(max-width:600px){.mkg-feature{padding:14px}.mkg-feature h2{font-size:17px}}
 </style>
 <style>.mkg-actions button{cursor:pointer}.mkg-actions button:focus-visible{outline:2px solid #fff;outline-offset:2px}#contributorsTable td{vertical-align:middle}</style>
+
+<style id="mkg-admin-reference-design">
+/* تصميم لوحة الإدارة مطابق للصورة المرجعية — تعديلات CSS فقط */
+:root{
+ --bg:#08051b;--top:#0b0821;--side:#0d0a25;
+ --card:#100c2d;--card2:#151038;--line:#332064;--line2:#472b7d;
+ --purple:#8615ed;--purple2:#a629ff;--cyan:#12bfff;
+ --pink:#d319ff;--green:#00e6a0;--text:#f7f4ff;--muted:#9d94bf;
+ --shadow:0 12px 34px rgba(88,20,210,.14)
+}
+html,body{background-color:var(--bg)}
+.app{grid-template-columns:265px minmax(0,1fr);grid-template-rows:86px 1fr}
+.topbar{grid-template-columns:280px minmax(260px,1fr) 300px;padding-inline:18px}
+.sidebar{padding:25px 14px;background:linear-gradient(180deg,#100b2b,#09071c)}
+.main{padding:28px 14px 24px}
+.head{margin-bottom:22px}
+.head h2{font-size:25px}
+.stats{gap:14px;margin-bottom:19px}
+.stat{height:132px;border-radius:15px;padding:16px 17px}
+.stat-info strong{font-size:25px}
+.grid{grid-template-columns:minmax(0,1.65fr) minmax(250px,.82fr) minmax(245px,.8fr);gap:14px;margin-bottom:15px}
+.panel{border-radius:16px}
+.panel-head{min-height:55px}
+.chart{height:300px}
+.activity{min-height:57px}
+.rank{height:55px}
+.lower{gap:14px}
+.btn,.icon-btn,.nav button,.actions button{transition:background .18s,border-color .18s,box-shadow .18s,transform .18s}
+.btn:active,.icon-btn:active,.nav button:active{transform:translateY(1px)}
+.nav button{min-height:48px;font-size:12px}
+.nav button.active{background:linear-gradient(100deg,#8e12ec,#5b10c7);border-color:#ba5cff}
+.table th{background:#120d31}
+.modal-box{border-radius:18px}
+@media(max-width:1250px){
+ .app{grid-template-columns:250px minmax(0,1fr)}
+ .main{padding:22px 14px}
+ .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .stat{height:116px}
+}
+@media(max-width:800px){
+ .app{display:block}
+ .main{padding:18px 12px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .stat{height:98px}
+}
+@media(max-width:430px){
+ .stats{grid-template-columns:1fr}
+ .stat{height:88px}
+}
+</style>
+
 </head>
 <body>
 <div class="app">
