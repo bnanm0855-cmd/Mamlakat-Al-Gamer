@@ -136,17 +136,15 @@ async function loadGames(){const {data,error}=await sb.from('games').select('id,
 
 let cachedPlayRows=[];
 async function loadDashboardMetrics(){
- const [{data,error},{count:totalCount,error:totalError},{count:weeklyCount,error:weeklyError}]=await Promise.all([
-  sb.from('game_plays').select('game_id,visitor_id,played_at').order('played_at',{ascending:false}).limit(10000),
-  sb.from('game_plays').select('id',{count:'exact',head:true}),
-  sb.from('game_plays').select('id',{count:'exact',head:true}).gte('played_at',new Date(Date.now()-7*24*60*60*1000).toISOString())
- ]);
- if(error||totalError||weeklyError){console.warn('Play metrics unavailable:',error?.message||totalError?.message||weeklyError?.message);return}
- cachedPlayRows=Array.isArray(data)?data:[];
- const unique=new Set(cachedPlayRows.map(x=>x.visitor_id).filter(Boolean)).size;
+ const {data,error}=await sb.rpc('get_game_play_stats');
  const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
- put('uniquePlayers',unique+'*');put('totalPlayEvents',totalCount||0);put('weeklyPlayEvents',weeklyCount||0);put('analyticsUniquePlayers',unique+'*');put('analyticsTotalPlays',totalCount||0);put('analyticsWeekPlays',weeklyCount||0);
- const uniqueNote=document.querySelector('#analyticsUniquePlayers')?.parentElement?.querySelector('small');if(uniqueNote)uniqueNote.textContent='من أحدث 10,000 سجل لعب';
+ if(error){console.warn('Play metrics unavailable:',error.message);put('totalPlayEvents','—');put('weeklyPlayEvents','—');put('analyticsTotalPlays','—');put('analyticsWeekPlays','—');put('uniquePlayers','—');put('analyticsUniquePlayers','—');return}
+ const rows=Array.isArray(data)?data:[];
+ const total=rows.reduce((sum,x)=>sum+(Number(x.total_plays)||0),0);
+ const weekly=rows.reduce((sum,x)=>sum+(Number(x.plays_last_7_days)||0),0);
+ put('totalPlayEvents',total);put('weeklyPlayEvents',weekly);put('analyticsTotalPlays',total);put('analyticsWeekPlays',weekly);
+ put('uniquePlayers','—');put('analyticsUniquePlayers','—');
+ const uniqueNote=document.querySelector('#analyticsUniquePlayers')?.parentElement?.querySelector('small');if(uniqueNote)uniqueNote.textContent='يتطلب عدّاً مميزاً آمناً من قاعدة البيانات';
  const {count,error:contribError}=await sb.from('visitor_contributions').select('id',{count:'exact',head:true}).eq('status','pending');
  if(!contribError)put('pendingSuggestions',count||0);
 }
@@ -205,7 +203,7 @@ async function loadContributors(){
  body.innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.total+'</td><td>'+x.published+'</td><td>'+x.pending+'</td><td>'+x.rejected+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد مساهمات ألعاب مسجلة بعد.</td></tr>';
 }
 function setPage(id){$$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
-$('.nav button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
+$('.nav')?.addEventListener('click',event=>{const button=event.target.closest('button[data-page]');if(button)setPage(button.dataset.page)});
 $('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 $('#fullscreenBtn')?.addEventListener('click',()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.());
 $('#mailBtn')?.addEventListener('click',()=>toast('لا توجد رسائل جديدة'));
