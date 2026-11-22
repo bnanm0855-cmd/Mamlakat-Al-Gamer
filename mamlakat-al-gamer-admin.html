@@ -139,7 +139,7 @@ html,body{background-color:var(--bg)}
     <div class="stat pink"><div class="stat-icon">📨</div><div class="stat-info"><strong id="pendingSuggestions">—</strong><span>اقتراحات تنتظر المراجعة</span><small>من مساهمات الزوار</small></div></div>
   </div>
   <div class="grid">
-    <div class="panel"><div class="panel-head"><h3>▥ إحصائيات الزيارات</h3><select class="select"><option>آخر 30 يوم</option><option>آخر 7 أيام</option><option>آخر 12 شهر</option></select></div><div class="chart"><div class="chart-empty"><div><div style="font-size:36px">📊</div><b>لا توجد بيانات تجريبية</b><span>سيظهر مخطط الزوار والمشاهدات ومرات اللعب هنا بعد ربط واجهة الزوار بقاعدة البيانات.</span></div></div></div><div class="legend"><span><i style="background:#d20aff"></i>زوار عائدون</span><span><i style="background:#09aaff"></i>زوار جدد</span></div></div>
+    <div class="panel"><div class="panel-head"><h3>▥ إحصائيات اللعب</h3><select class="select"><option>آخر 30 يوم</option><option>آخر 7 أيام</option><option>آخر 12 شهر</option></select></div><div class="chart"><div class="chart-empty"><div><div style="font-size:36px">📊</div><b>لا توجد بيانات تجريبية</b><span>سيظهر مخطط الزوار والمشاهدات ومرات اللعب هنا بعد ربط واجهة الزوار بقاعدة البيانات.</span></div></div></div><div class="legend"><span><i style="background:#d20aff"></i>زوار عائدون</span><span><i style="background:#09aaff"></i>زوار جدد</span></div></div>
     <div class="panel"><div class="panel-head"><h3>⚡ نشاط المنصة</h3><span class="muted">مباشر</span></div><div class="activity-list" id="activityList"><div class="empty-mini">لا يوجد نشاط بعد.</div></div></div>
     <div class="panel rank-panel"><div class="panel-head"><h3>🏆 أكثر الألعاب لعباً</h3><span style="color:#ffc83d">★</span></div><div class="rank-list" id="rankList"><div class="empty-rank">لا توجد ألعاب بعد.</div></div></div>
   </div>
@@ -197,6 +197,43 @@ function toUi(row){return {id:row.id,name:row.title,category:row.category||'أل
 function authScreen(){let x=document.getElementById('adminAuthGate');if(x)return;x=document.createElement('div');x.id='adminAuthGate';x.style.cssText='position:fixed;inset:0;z-index:9999;background:#08051cf5;display:grid;place-items:center;padding:20px;font-family:Cairo,Tahoma,sans-serif;color:white';x.innerHTML='<form id="adminLoginForm" style="width:min(420px,100%);background:#151039;border:1px solid #7540b7;border-radius:18px;padding:26px;box-shadow:0 20px 70px #0009"><h2 style="margin:0 0 8px">دخول المدير — مملكة الجيمر</h2><p style="color:#bdb4dc;font-size:12px">سجّل الدخول بحساب المدير المعتمد في Supabase.</p><label style="display:block;margin:14px 0 6px;font-size:12px">البريد الإلكتروني</label><input id="adminEmail" type="email" required autocomplete="username" style="width:100%;padding:12px;border-radius:9px;background:#0f0b29;border:1px solid #493071;color:white"><label style="display:block;margin:14px 0 6px;font-size:12px">كلمة المرور</label><input id="adminPassword" type="password" required autocomplete="current-password" style="width:100%;padding:12px;border-radius:9px;background:#0f0b29;border:1px solid #493071;color:white"><button style="width:100%;margin-top:18px;padding:12px;border:0;border-radius:10px;background:linear-gradient(120deg,#9700ff,#510bc0);color:white;font-weight:800">تسجيل الدخول</button><p id="adminLoginError" style="color:#ff9bad;font-size:12px"></p></form>';document.body.appendChild(x);$('#adminLoginForm').onsubmit=async e=>{e.preventDefault();$('#adminLoginError').textContent='جارٍ التحقق...';const {error}=await sb.auth.signInWithPassword({email:$('#adminEmail').value.trim(),password:$('#adminPassword').value});if(error){$('#adminLoginError').textContent='تعذر تسجيل الدخول: '+error.message;return}await boot()}}
 function addLogout(){if($('#logoutBtn'))return;const b=document.createElement('button');b.id='logoutBtn';b.className='icon-btn';b.textContent='⇥';b.title='تسجيل الخروج';$('.top-left').prepend(b);b.onclick=async()=>{await sb.auth.signOut();location.reload()}}
 async function loadGames(){const {data,error}=await sb.from('games').select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,submitter_name,created_at').order('created_at',{ascending:false});if(error)throw error;db.games=(data||[]).map(toUi)}
+async function loadCategories(){
+ const {data,error}=await sb.from('game_categories').select('name').order('name');
+ if(error){console.warn('Categories table not ready:',error.message);db.categories=[...new Set(db.games.map(g=>g.category).filter(Boolean))];return}
+ db.categories=(data||[]).map(x=>x.name);
+ for(const name of db.games.map(g=>g.category).filter(Boolean))if(!db.categories.includes(name))db.categories.push(name);
+ db.categories.sort((a,b)=>a.localeCompare(b,'ar'));
+}
+function renderCategories(){
+ const body=$('#categoriesTable');if(!body)return;
+ const names=[...new Set([...(db.categories||[]),...db.games.map(g=>g.category).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'ar'));
+ body.innerHTML=names.length?names.map(name=>'<tr><td><b>'+esc(name)+'</b></td><td>'+db.games.filter(g=>g.category===name).length+'</td><td class="actions"><button data-cat-action="rename" data-name="'+esc(name)+'">تعديل الاسم</button><button data-cat-action="delete" data-name="'+esc(name)+'">حذف</button></td></tr>').join(''):'<tr><td colspan="3" class="empty">لا توجد تصنيفات بعد.</td></tr>';
+ if($('#categoriesEmpty'))$('#categoriesEmpty').style.display='none';
+}
+async function addCategory(){
+ const input=prompt('اسم التصنيف الجديد:');if(!input||!input.trim())return;
+ const name=input.trim().slice(0,60),{error}=await sb.from('game_categories').insert({name});
+ if(error){toast('تعذرت إضافة التصنيف: '+error.message);return}
+ await loadCategories();renderCategories();toast('تمت إضافة التصنيف');
+}
+async function renameCategory(oldName){
+ const input=prompt('الاسم الجديد للتصنيف:',oldName);if(!input||!input.trim()||input.trim()===oldName)return;
+ const name=input.trim().slice(0,60),{error}=await sb.from('game_categories').insert({name});
+ if(error){toast('تعذرت إضافة الاسم الجديد: '+error.message);return}
+ const moved=await sb.from('games').update({category:name}).eq('category',oldName);
+ if(moved.error){toast('أُضيف الاسم الجديد لكن تعذر نقل الألعاب: '+moved.error.message);return}
+ const removed=await sb.from('game_categories').delete().eq('name',oldName);
+ if(removed.error){toast('تم نقل الألعاب لكن تعذر حذف الاسم القديم: '+removed.error.message);return}
+ await loadGames();await loadCategories();render();renderCategories();toast('تم تعديل التصنيف');
+}
+async function deleteCategory(name){
+ if(!confirm('حذف التصنيف «'+name+'»؟ ستُنقل ألعابه إلى «ألعاب».'))return;
+ const moved=await sb.from('games').update({category:'ألعاب'}).eq('category',name);
+ if(moved.error){toast('تعذر نقل الألعاب: '+moved.error.message);return}
+ const {error}=await sb.from('game_categories').delete().eq('name',name);
+ if(error){toast('تعذر حذف التصنيف: '+error.message);return}
+ await loadGames();await loadCategories();render();renderCategories();toast('تم حذف التصنيف');
+}
 
 let cachedPlayRows=[];
 async function loadDashboardMetrics(){
@@ -206,9 +243,9 @@ async function loadDashboardMetrics(){
  const rows=Array.isArray(data)?data:[];
  const total=rows.reduce((sum,x)=>sum+(Number(x.total_plays)||0),0);
  const weekly=rows.reduce((sum,x)=>sum+(Number(x.plays_last_7_days)||0),0);
+ const unique=rows.reduce((sum,x)=>sum+(Number(x.unique_players)||0),0);
  put('totalPlayEvents',total);put('weeklyPlayEvents',weekly);put('analyticsTotalPlays',total);put('analyticsWeekPlays',weekly);
- put('uniquePlayers','—');put('analyticsUniquePlayers','—');
- const uniqueNote=document.querySelector('#analyticsUniquePlayers')?.parentElement?.querySelector('small');if(uniqueNote)uniqueNote.textContent='يتطلب عدّاً مميزاً آمناً من قاعدة البيانات';
+ put('uniquePlayers',unique);put('analyticsUniquePlayers',unique);
  const {count,error:contribError}=await sb.from('visitor_contributions').select('id',{count:'exact',head:true}).eq('status','pending');
  if(!contribError)put('pendingSuggestions',count||0);
 }
@@ -255,8 +292,7 @@ function render(){
  if($('#requestsTable'))$('#requestsTable').innerHTML=pendingGames.length?pendingGames.map(g=>'<tr><td><div class="game-name-cell">'+(g.thumb?'<img class="game-thumb" src="'+esc(g.thumb)+'" alt="">':'<span class="game-thumb">🎮</span>')+'<b>'+esc(g.name)+'</b></div></td><td>'+esc(g.owner)+'</td><td>'+esc(g.category)+'</td><td><span class="status">'+esc(g.status)+'</span></td><td class="actions"><button class="preview-game-action" data-game-action="preview" data-id="'+g.id+'">▶ تجربة اللعبة</button><button data-game-action="publish" data-id="'+g.id+'">قبول ونشر</button><button data-game-action="reject" data-id="'+g.id+'">رفض</button></td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد ألعاب بانتظار المراجعة.</td></tr>';
  if($('#requestsEmpty'))$('#requestsEmpty').style.display='none';
  const counts={};db.games.filter(g=>g.rawStatus==='published').forEach(g=>counts[g.category]=(counts[g.category]||0)+1);
- if($('#categoriesTable'))$('#categoriesTable').innerHTML=Object.keys(counts).length?Object.entries(counts).map(([name,count])=>'<tr><td><b>'+esc(name)+'</b></td><td>'+count+'</td><td>—</td></tr>').join(''):'<tr><td colspan="3" class="empty">لا توجد تصنيفات منشورة بعد.</td></tr>';
- if($('#categoriesEmpty'))$('#categoriesEmpty').style.display='none';
+ renderCategories();
  if($('#logoPreview')&&db.logo)$('#logoPreview').style.backgroundImage='url('+db.logo+')';loadPlayStats();
 }
 async function loadContributors(){
@@ -266,13 +302,20 @@ async function loadContributors(){
  const rows=[...groups.values()].sort((a,b)=>b.total-a.total);
  body.innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.total+'</td><td>'+x.published+'</td><td>'+x.pending+'</td><td>'+x.rejected+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد مساهمات ألعاب مسجلة بعد.</td></tr>';
 }
-function setPage(id){$$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
+function setPage(id){$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='categories'){loadCategories().then(renderCategories)}if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
 $('.nav')?.addEventListener('click',event=>{const button=event.target.closest('button[data-page]');if(button)setPage(button.dataset.page)});
+$('#addCategoryBtn')?.addEventListener('click',addCategory);
+$('#categoriesTable')?.addEventListener('click',event=>{const b=event.target.closest('[data-cat-action]');if(!b)return;if(b.dataset.catAction==='rename')renameCategory(b.dataset.name);else if(b.dataset.catAction==='delete')deleteCategory(b.dataset.name)});
 $('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 $('#fullscreenBtn')?.addEventListener('click',()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.());
 $('#mailBtn')?.addEventListener('click',()=>toast('لا توجد رسائل جديدة'));
 $('#notifyBtn')?.addEventListener('click',()=>toast('لا توجد إشعارات جديدة'));
-$('#refreshBtn')?.addEventListener('click',async()=>{try{await loadGames();render();await Promise.all([loadDashboardMetrics(),loadContributions(),loadContributors()]);toast('تم تحديث بيانات لوحة الإدارة من Supabase')}catch(e){toast('تعذر تحديث البيانات: '+e.message)}});
+$('#refreshBtn')?.addEventListener('click',async()=>{try{await loadGames();await loadCategories();render();renderCategories();await Promise.all([loadDashboardMetrics(),loadContributions(),loadContributors()]);toast('تم تحديث البيانات')}catch(e){toast('تعذر تحديث البيانات: '+e.message)}});
+function exportAdminData(){
+ const payload={exported_at:new Date().toISOString(),games:db.games.map(g=>({id:g.id,title:g.name,category:g.category,submitter:g.owner,status:g.rawStatus,created_at:g.created_at,html_file_path:g.html_file_path,thumbnail_path:g.thumbnail_path})),categories:db.categories,contributions};
+ const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='mamlakat-al-gamer-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+$('#backupBtn')?.addEventListener('click',exportAdminData);$('#exportBtn')?.addEventListener('click',exportAdminData);
 function openModal(html){$('#modalBox').innerHTML=html;$('#modal').classList.add('show')}
 function closeModal(){$('#modal').classList.remove('show');if(window.__mkgAdminPreviewUrl){URL.revokeObjectURL(window.__mkgAdminPreviewUrl);window.__mkgAdminPreviewUrl=''}}
 $('#modal')?.addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
@@ -336,7 +379,7 @@ if($('#autoText'))$('#autoText').textContent='غير مفعّلة حالياً �
 $('#saveSettings')?.addEventListener('click',()=>toast('لا توجد إعدادات قابلة للحفظ في هذه الصفحة حالياً.'));
 $('#logoFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)toast('رفع شعار القناة إلى channel-assets يحتاج حقلاً مخصصاً في قاعدة البيانات')});
 $('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),g=db.games.find(x=>x.name.toLowerCase().includes(q));if(g){setPage('games');toast('تم العثور على '+g.name)}else toast('لم يتم العثور على لعبة مطابقة')}});
-function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','غير مفعّلة: لا يوجد جدول جلسات مشترك حتى الآن');put('sessionTotal','غير متاح');put('sessionActive','غير متاح');put('sessionAverage','غير متاح');put('sessionLongest','غير متاح');put('sessionTotalTime','غير متاح');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لم يتم إعداد تتبع جلسات الزوار بعد. الأرقام المحلية القديمة لا تمثل زوار الموقع.</td></tr>'}
+function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','غير مفعّلة — لا يوجد سجل جلسات مشترك');put('sessionTotal','غير متاح');put('sessionActive','غير متاح');put('sessionAverage','غير متاح');put('sessionLongest','غير متاح');put('sessionTotalTime','غير متاح');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لم يتم إعداد تتبع جلسات الزوار بعد. الأرقام المحلية القديمة لا تمثل زوار الموقع.</td></tr>'}
 let adminGamesChannel=null,adminGamesPoll=null,lastAdminGamesSignature='';
 function adminGamesSignature(){return JSON.stringify(db.games.map(g=>[g.id,g.rawStatus,g.name,g.html_file_path,g.thumbnail_path,g.created_at]));}
 async function refreshAdminGames(force=false){
@@ -363,7 +406,7 @@ async function boot(){
  const {data:role,error}=await sb.from('user_roles').select('role').eq('user_id',session.user.id).maybeSingle();
  if(error||role?.role!=='admin'){await sb.auth.signOut();$('#adminLoginError').textContent='هذا الحساب ليس لديه صلاحية مدير.';return}
  currentUser=session.user;$('#adminAuthGate')?.remove();addLogout();
- try{await loadGames();lastAdminGamesSignature=adminGamesSignature();render();renderSessions();await Promise.all([loadPlayStats(),loadContributions(),loadDashboardMetrics(),loadContributors()]);watchAdminGames();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
+ try{await loadGames();await loadCategories();lastAdminGamesSignature=adminGamesSignature();render();renderCategories();renderSessions();await Promise.all([loadPlayStats(),loadContributions(),loadDashboardMetrics(),loadContributors()]);watchAdminGames();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
 }
 window.closeModal=closeModal;
 boot();
