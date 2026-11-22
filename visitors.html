@@ -475,13 +475,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
    <div class="section-head"><div><span class="section-kicker">اكتشف عالمك</span><h2 id="sectionTitle">ألعاب مميزة</h2></div><span class="result-count" id="resultCount">لا توجد ألعاب منشورة بعد</span></div>
    <div class="filter-chips" id="visitorCategoryFilters" aria-label="تصفية حسب التصنيف"></div><div class="game-grid" id="gameGrid"><div class="empty-state"><span>🕹️</span><b>لا توجد ألعاب منشورة حالياً</b><p>ستظهر الألعاب هنا فور نشرها من لوحة الإدارة.</p></div></div>
   </section>
-  <section class="mkg-feature" id="popularGames"><span class="section-kicker">الألعاب الأكثر شعبية</span><h2>🏆 الأكثر لعباً</h2><p>ترتيب الألعاب حسب عدد مرات تشغيلها، ويمكنك التبديل بين الإجمالي وآخر 7 أيام.</p><div class="mkg-actions"><button type="button" id="rankAllBtn">الأكثر لعباً إجمالاً</button><button type="button" id="rankWeekBtn">الأكثر لعباً هذا الأسبوع</button></div><div class="mkg-rank-list" id="visitorRankList"><p class="mkg-muted">جارٍ تحميل الترتيب…</p></div></section>
-  <section class="share-banner" id="platformAdsSection" style="display:none"><div class="share-emoji">📢</div><div class="share-copy"><b>إعلانات مملكة الجيمر</b><span>إعلانات وعروض المنصة</span><div id="visitorAdsList" class="mkg-rank-list"></div></div></section>
-  <section class="share-banner" id="contributions"><div class="share-emoji">🕹️</div><div class="share-copy"><b>ساهم في تطوير مملكة الجيمر</b><span>أرسل لعبة جديدة أو شاركنا اقتراحاً لتحسين المنصة أو إحدى الألعاب.</span><div class="mkg-actions" style="margin-top:10px"><button type="button" id="contributeGameBtn">إرسال لعبة</button><button type="button" id="suggestIdeaBtn">إرسال اقتراح</button></div></div></section>
+  <section class="mkg-feature" id="popularGames"><span class="section-kicker">الألعاب الأكثر شعبية</span><h2>🏆 الأكثر لعباً</h2><p>ترتيب الألعاب حسب عدد مرات تشغيلها، ويمكنك التبديل بين الإجمالي وآخر 7 أيام.</p><div class="mkg-actions"><button type="button" id="rankAllBtn">الأكثر لعباً إجمالاً</button><button type="button" id="rankWeekBtn">الأكثر لعباً هذا الأسبوع</button></div><div class="mkg-rank-list" id="visitorRankList"><p class="mkg-muted">جارٍ تحميل الترتيب…</p></div></section><section class="share-banner" id="contributions"><div class="share-emoji">🕹️</div><div class="share-copy"><b>ساهم في تطوير مملكة الجيمر</b><span>أرسل لعبة جديدة أو شاركنا اقتراحاً لتحسين المنصة أو إحدى الألعاب.</span><div class="mkg-actions" style="margin-top:10px"><button type="button" id="contributeGameBtn">إرسال لعبة</button><button type="button" id="suggestIdeaBtn">إرسال اقتراح</button></div></div></section>
   <footer><span>© <span id="year"></span> مملكة الجيمر</span><span>صُنعت بشغف لعشاق الألعاب 💜</span></footer>
  </main>
 </div>
-<div class="mobile-dock"><a class="dock-active" href="#home"><span>⌂</span>الرئيسية</a><a href="#games"><span>🎮</span>كل الألعاب</a><button type="button" disabled aria-disabled="true"><span>✦</span>مزايا أخرى <small>قريباً</small></button></div>
+<div class="mobile-dock"><a class="dock-active" href="#home"><span>⌂</span>الرئيسية</a><a href="#games"><span>🎮</span>كل الألعاب</a></div>
 <div class="modal-backdrop" id="modal" aria-hidden="true"><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="modal-close" id="closeModal" aria-label="إغلاق">×</button><div id="modalContent"></div></section></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -535,13 +533,6 @@ function startSessionHeartbeat(){
  visitorSessionHeartbeat=setInterval(heartbeatVisitorSession,30000);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')heartbeatVisitorSession()});
  window.addEventListener('pagehide',finishVisitorSession);
-}
-async function loadPlatformAds(){
- const {data,error}=await sb.from('platform_ads').select('id,title,description,image_path,target_url').eq('is_active',true).order('created_at',{ascending:false}).limit(8);
- if(error){console.warn('Platform ads unavailable:',error.message);return}
- const section=$('#platformAdsSection'),host=$('#visitorAdsList');if(!section||!host)return;
- if(!data?.length){section.style.display='none';return}
- section.style.display='';host.innerHTML=data.map(ad=>'<article class="mkg-rank-card">'+(ad.image_path?'<img src="'+safe(sb.storage.from('platform-ads').getPublicUrl(ad.image_path).data.publicUrl)+'" alt="">':'<span style="font-size:28px">📢</span>')+'<div><b>'+safe(ad.title)+'</b><div class="mkg-muted">'+safe(ad.description||'')+'</div>'+(ad.target_url?'<a href="'+safe(ad.target_url)+'" target="_blank" rel="noopener noreferrer">اعرف المزيد ↗</a>':'')+'</div></article>').join('');
 }
 async function loadSiteSettings(){
  const {data,error}=await sb.from('site_settings').select('channel_name,logo_path').eq('id',1).maybeSingle();
@@ -693,7 +684,6 @@ loadGames().catch(e=>console.error('تعذر تحميل الألعاب المن�
 loadVisitorCategories().catch(e=>console.warn('تعذر تحميل التصنيفات:',e));
 loadSiteSettings().catch(e=>console.warn('تعذر تحميل إعدادات المنصة:',e));
 startSessionHeartbeat();
-loadPlatformAds().catch(e=>console.warn('تعذر تحميل إعلانات المنصة:',e));
 loadPopular('all').catch(e=>console.warn('تعذر تحميل الأكثر لعباً:',e));
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
