@@ -45,6 +45,7 @@
 .mkg-admin-row p{margin:4px 0;color:#b9aed5;font-size:11px}.mkg-admin-row button{margin:3px;padding:7px 12px;border-radius:8px;border:1px solid #8144bb;background:#241345;color:white;cursor:pointer}
 @media(max-width:600px){.mkg-feature{padding:14px}.mkg-feature h2{font-size:17px}}
 </style>
+<style>.mkg-actions button{cursor:pointer}.mkg-actions button:focus-visible{outline:2px solid #fff;outline-offset:2px}#contributorsTable td{vertical-align:middle}</style>
 </head>
 <body>
 <div class="app">
@@ -78,11 +79,11 @@
 <section class="page active" id="overview">
   <div class="head"><div><h2>لوحة التحكم الرئيسية</h2><p>ملخص سريع للألعاب والمستخدمين وأداء المنصة</p></div><div class="tools"><button class="btn secondary" id="refreshBtn">↻ تحديث البيانات</button><button class="btn" id="backupBtn">⇩ تصدير النسخة</button></div></div>
   <div class="stats">
-    <div class="stat purple"><div class="stat-icon">👥</div><div class="stat-info"><strong>—</strong><span>زوار هذا الشهر</span><small>بيانات إضافية غير مفعّلة حالياً</small></div></div>
-    <div class="stat blue"><div class="stat-icon">🧑‍💻</div><div class="stat-info"><strong>—</strong><span>مستخدمون مسجلون</span><small>بانتظار ربط قاعدة البيانات</small></div></div>
+    <div class="stat purple"><div class="stat-icon">👥</div><div class="stat-info"><strong id="uniquePlayers">—</strong><span>لاعبون فريدون</span><small>حسب معرفات اللعب المسجلة</small></div></div>
+    <div class="stat blue"><div class="stat-icon">◉</div><div class="stat-info"><strong id="totalPlayEvents">—</strong><span>إجمالي مرات اللعب</span><small>من جدول game_plays</small></div></div>
     <div class="stat teal"><div class="stat-icon">🎮</div><div class="stat-info"><strong id="gamesCount">0</strong><span>ألعاب منشورة</span><small>بيانات قاعدة Supabase</small></div></div>
-    <div class="stat orange"><div class="stat-icon">▶</div><div class="stat-info"><strong>—</strong><span>مرات اللعب</span><small>بانتظار ربط قاعدة البيانات</small></div></div>
-    <div class="stat pink"><div class="stat-icon">🏆</div><div class="stat-info"><strong>—</strong><span>الأكثر لعباً</span><small>بانتظار ربط قاعدة البيانات</small></div></div>
+    <div class="stat orange"><div class="stat-icon">📅</div><div class="stat-info"><strong id="weeklyPlayEvents">—</strong><span>مرات اللعب آخر 7 أيام</span><small>من جدول game_plays</small></div></div>
+    <div class="stat pink"><div class="stat-icon">📨</div><div class="stat-info"><strong id="pendingSuggestions">—</strong><span>اقتراحات تنتظر المراجعة</span><small>من مساهمات الزوار</small></div></div>
   </div>
   <div class="grid">
     <div class="panel"><div class="panel-head"><h3>▥ إحصائيات الزيارات</h3><select class="select"><option>آخر 30 يوم</option><option>آخر 7 أيام</option><option>آخر 12 شهر</option></select></div><div class="chart"><div class="chart-empty"><div><div style="font-size:36px">📊</div><b>لا توجد بيانات تجريبية</b><span>سيظهر مخطط الزوار والمشاهدات ومرات اللعب هنا بعد ربط واجهة الزوار بقاعدة البيانات.</span></div></div></div><div class="legend"><span><i style="background:#d20aff"></i>زوار عائدون</span><span><i style="background:#09aaff"></i>زوار جدد</span></div></div>
@@ -98,9 +99,9 @@
 <section class="page" id="games"><div class="head"><div><h2>الألعاب والتعديلات</h2><p>رفع ألعابك، تجربتها، تعديلها والتحكم بحالة نشرها</p></div><button class="btn" id="addGameBtn">＋ إضافة لعبة</button></div><div class="panel table"><table><thead><tr><th>اللعبة</th><th>التصنيف</th><th>المالك</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="gamesTable"></tbody></table><div id="gamesEmpty" class="empty">لا توجد ألعاب حتى الآن.</div></div></section>
 <section class="page" id="requests"><div class="head"><div><h2>طلبات النشر</h2><p>تجربة ألعاب الزوار ثم قبولها أو رفضها قبل ظهورها للعامة</p></div><button class="btn secondary" id="autoFromRequests">⚡ الموافقة التلقائية: متوقفة</button></div><div class="panel table"><table><thead><tr><th>اللعبة</th><th>صاحبها</th><th>التصنيف</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="requestsTable"></tbody></table><div id="requestsEmpty" class="empty">لا توجد طلبات نشر حالياً.</div></div></section>
 <section class="page" id="categories"><div class="head"><div><h2>التصنيفات والأقسام</h2><p>تنظيم الألعاب ضمن أقسام واضحة للزوار</p></div><button class="btn" id="addCategoryBtn">＋ إضافة تصنيف</button></div><div class="panel table"><table><thead><tr><th>التصنيف</th><th>عدد الألعاب</th><th>الإجراءات</th></tr></thead><tbody id="categoriesTable"></tbody></table><div id="categoriesEmpty" class="empty">لا توجد تصنيفات بعد.</div></div></section>
-<section class="page" id="contributors"><div class="head"><div><h2>المساهمون</h2><p>أصحاب الألعاب والمساهمات القادمة من واجهة الزوار</p></div></div><div class="panel placeholder"><div class="big">👥</div><h3>لا توجد بيانات مساهمين</h3><p>ستظهر هنا بيانات أصحاب الألعاب بعد بناء واجهة الزوار وربط الحسابات بقاعدة البيانات.</p></div></section>
+<section class="page" id="contributors"><div class="head"><div><h2>المساهمون</h2><p>ملخص أصحاب الألعاب وعدد الألعاب وحالات النشر المسجلة بأسمائهم.</p></div><button class="btn secondary" id="refreshContributorsBtn">↻ تحديث</button></div><div class="panel table"><table><thead><tr><th>اسم المساهم</th><th>عدد الألعاب</th><th>منشورة</th><th>بانتظار المراجعة</th><th>مرفوضة</th></tr></thead><tbody id="contributorsTable"><tr><td colspan="5" class="empty">جارٍ تحميل المساهمين…</td></tr></tbody></table></div><p class="muted" style="margin-top:10px">ملاحظة: هذه القائمة تعتمد على اسم المساهم الذي أُرسل مع اللعبة، وليست حسابات مستخدمين موثقة.</p></section>
 <section class="page" id="moderation"><div class="head"><div><h2>مساهمات الزوار</h2><p>اقتراحات التحسين الواردة من واجهة الزوار — راجعها وغيّر حالتها</p></div><button class="btn secondary" id="refreshContribBtn">↻ تحديث</button></div><div id="contributionsList"><div class="panel placeholder">جارٍ تحميل المساهمات…</div></div></section>
-<section class="page" id="analytics"><div class="head"><div><h2>الإحصائيات</h2><p>الزوار والمشاهدات ومرات اللعب والألعاب الأكثر شعبية</p></div><button class="btn secondary" id="exportBtn">⇩ تصدير البيانات</button></div><div class="stats"><div class="stat purple"><div class="stat-icon">👥</div><div class="stat-info"><strong>—</strong><span>زوار فريدون</span><small>بانتظار الربط</small></div></div><div class="stat blue"><div class="stat-icon">◉</div><div class="stat-info"><strong>—</strong><span>مشاهدات</span><small>بانتظار الربط</small></div></div><div class="stat teal"><div class="stat-icon">▶</div><div class="stat-info"><strong>—</strong><span>مرات اللعب</span><small>بانتظار الربط</small></div></div><div class="stat orange"><div class="stat-icon">🏆</div><div class="stat-info"><strong>—</strong><span>الأكثر لعباً</span><small>بانتظار الربط</small></div></div><div class="stat pink"><div class="stat-icon">🎮</div><div class="stat-info"><strong id="analyticsGames">0</strong><span>ألعاب محلية</span><small>بيانات لوحة المدير</small></div></div></div><div class="panel" style="padding:16px;margin-bottom:14px"><h3>🏆 ترتيب الألعاب الأكثر لعباً</h3><p class="muted">إجمالي مرات التشغيل المسجلة، مرتبة تنازلياً</p><div id="adminPopularList" class="mkg-rank-list">جارٍ تحميل الإحصائيات…</div></div><div class="panel" style="padding:16px;margin-top:14px">
+<section class="page" id="analytics"><div class="head"><div><h2>الإحصائيات</h2><p>الزوار والمشاهدات ومرات اللعب والألعاب الأكثر شعبية</p></div><button class="btn secondary" id="exportBtn">⇩ تصدير البيانات</button></div><div class="stats"><div class="stat purple"><div class="stat-icon">👥</div><div class="stat-info"><strong id="analyticsUniquePlayers">—</strong><span>لاعبون فريدون</span><small>وفق visitor_id</small></div></div><div class="stat blue"><div class="stat-icon">◉</div><div class="stat-info"><strong>غير متاح</strong><span>مشاهدات الصفحات</span><small>لم يُنشأ سجل للمشاهدات بعد</small></div></div><div class="stat teal"><div class="stat-icon">▶</div><div class="stat-info"><strong id="analyticsTotalPlays">—</strong><span>مرات اللعب</span><small>إجمالي السجلات</small></div></div><div class="stat orange"><div class="stat-icon">📅</div><div class="stat-info"><strong id="analyticsWeekPlays">—</strong><span>اللعب آخر 7 أيام</span><small>إجمالي السجلات</small></div></div><div class="stat pink"><div class="stat-icon">🎮</div><div class="stat-info"><strong id="analyticsGames">0</strong><span>ألعاب مسجلة</span><small>من Supabase</small></div></div></div><div class="panel" style="padding:16px;margin-bottom:14px"><div class="panel-head" style="padding:0 0 12px"><h3>🏆 ترتيب الألعاب الأكثر لعباً</h3><div class="mkg-actions"><button type="button" id="rankAllAdminBtn">الإجمالي</button><button type="button" id="rankWeekAdminBtn">آخر 7 أيام</button></div></div><div id="adminPopularList" class="mkg-rank-list">جارٍ تحميل الإحصائيات…</div></div><div class="panel" style="padding:16px;margin-top:14px">
 <div class="panel-head" style="padding:0 0 12px"><h3>⏱ مدة بقاء الزوار داخل المنصة</h3><span class="muted" id="sessionSource">تجميع محلي على هذا المتصفح</span></div>
 <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(145px,1fr));margin:0 0 14px">
 <div class="stat purple"><div class="stat-icon">👥</div><div class="stat-info"><strong id="sessionTotal">0</strong><span>زيارات مسجلة</span></div></div>
@@ -110,7 +111,7 @@
 <div class="stat pink"><div class="stat-icon">∑</div><div class="stat-info"><strong id="sessionTotalTime">—</strong><span>إجمالي وقت الزيارات</span></div></div>
 </div>
 <div class="table"><table style="min-width:520px"><thead><tr><th>الجلسة</th><th>وقت الدخول</th><th>مدة البقاء</th><th>الحالة</th></tr></thead><tbody id="sessionTable"><tr><td colspan="4" class="empty">لا توجد زيارات مسجلة في هذا المتصفح بعد.</td></tr></tbody></table></div>
-<p class="muted" style="line-height:1.9;margin:12px 0 0">ملاحظة: هذه الإحصائيات تقرأ سجل الجلسات المحلي الموجود في هذا المتصفح فقط. لا تمثل جميع زوار الموقع المنشور ولا تنتقل بين الأجهزة. لتجميع إحصائيات جميع الزوار فعلياً، يجب ربط واجهة الزوار وقاعدة Supabase المشتركة.</p>
+<p class="muted" style="line-height:1.9;margin:12px 0 0">تنبيه: مدة الجلسات ومشاهدات الصفحات لا تُسجّل حالياً في قاعدة البيانات؛ لذلك لا نعرض أرقاماً تقديرية أو محلية على أنها إحصائيات عامة. المتاح حالياً هو مرات اللعب واللاعبون الفريدون وفق معرفات اللعب.</p>
 </div></section>
 <section class="page" id="settings"><div class="head"><div><h2>إعدادات المنصة</h2><p>هوية مملكة الجيمر وقواعد النشر</p></div><button class="btn" id="saveSettings">حفظ</button></div><div class="settings-grid"><div class="panel setting"><h3>⚡ الموافقة على ألعاب الزوار</h3><div class="switchrow"><div><b>الموافقة التلقائية</b><small id="autoText">متوقفة — مراجعة يدوية</small></div><label class="switch"><input id="autoToggle" type="checkbox"><span class="slider"></span></label></div><p class="muted" style="line-height:2">عند إيقافها، كل لعبة يرفعها الزائر تنتظر موافقتك وتجربتك قبل النشر.</p></div><div class="panel setting"><h3>🎨 شعار القناة</h3><div class="field"><label>صورة الشعار</label><input id="logoFile" type="file" accept="image/*"></div><p class="muted">اسم القناة المعتمد: <b style="color:#fff">مملكة الجيمر</b></p></div><div class="panel setting"><h3>🌐 واجهة الزوار</h3><p class="muted" style="line-height:2">التصفح واللعب بدون حساب. رفع اللعبة متاح للزوار، وتدخل الألعاب للمراجعة قبل النشر ما لم تفعل الموافقة التلقائية.</p><span class="status">متفق عليه</span></div><div class="panel setting"><h3>🔐 الأمان</h3><p class="muted" style="line-height:2">هذه اللوحة مستقلة عن واجهة الزوار. مفاتيح Supabase السرية لا توضع داخل HTML، والصلاحيات النهائية ستفرض في الخلفية.</p><span class="status">جاهز للربط</span></div></div></section>
 </main></div>
@@ -133,6 +134,19 @@ function authScreen(){let x=document.getElementById('adminAuthGate');if(x)return
 function addLogout(){if($('#logoutBtn'))return;const b=document.createElement('button');b.id='logoutBtn';b.className='icon-btn';b.textContent='⇥';b.title='تسجيل الخروج';$('.top-left').prepend(b);b.onclick=async()=>{await sb.auth.signOut();location.reload()}}
 async function loadGames(){const {data,error}=await sb.from('games').select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,submitter_name,created_at').order('created_at',{ascending:false});if(error)throw error;db.games=(data||[]).map(toUi)}
 
+let cachedPlayRows=[];
+async function loadDashboardMetrics(){
+ const {data,error}=await sb.from('game_plays').select('game_id,visitor_id,played_at').order('played_at',{ascending:false}).limit(10000);
+ if(error){console.warn('Play metrics unavailable:',error.message);return}
+ cachedPlayRows=Array.isArray(data)?data:[];
+ const now=Date.now(),weekAgo=now-7*24*60*60*1000;
+ const weekly=cachedPlayRows.filter(x=>new Date(x.played_at).getTime()>=weekAgo).length;
+ const unique=new Set(cachedPlayRows.map(x=>x.visitor_id).filter(Boolean)).size;
+ const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value)};
+ put('uniquePlayers',unique);put('totalPlayEvents',cachedPlayRows.length);put('weeklyPlayEvents',weekly);put('analyticsUniquePlayers',unique);put('analyticsTotalPlays',cachedPlayRows.length);put('analyticsWeekPlays',weekly);
+ const {count,error:contribError}=await sb.from('visitor_contributions').select('id',{count:'exact',head:true}).eq('status','pending');
+ if(!contribError)put('pendingSuggestions',count||0);
+}
 async function loadPlayStats(mode='all'){
   const host=$('#adminPopularList');if(!host)return;
   const {data,error}=await sb.rpc('get_game_play_stats');
@@ -180,7 +194,14 @@ function render(){
  if($('#categoriesEmpty'))$('#categoriesEmpty').style.display='none';
  if($('#logoPreview')&&db.logo)$('#logoPreview').style.backgroundImage='url('+db.logo+')';loadPlayStats();
 }
-function setPage(id){$$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open')}
+async function loadContributors(){
+ const body=$('#contributorsTable');if(!body)return;
+ const groups=new Map();
+ db.games.forEach(g=>{const name=(g.owner||'غير معروف').trim()||'غير معروف';if(!groups.has(name))groups.set(name,{name,total:0,published:0,pending:0,rejected:0});const x=groups.get(name);x.total++;if(g.rawStatus==='published')x.published++;else if(g.rawStatus==='pending')x.pending++;else if(g.rawStatus==='rejected')x.rejected++;});
+ const rows=[...groups.values()].sort((a,b)=>b.total-a.total);
+ body.innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.total+'</td><td>'+x.published+'</td><td>'+x.pending+'</td><td>'+x.rejected+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد مساهمات ألعاب مسجلة بعد.</td></tr>';
+}
+function setPage(id){$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
 $$('.nav button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 $('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 $('#fullscreenBtn')?.addEventListener('click',()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.());
@@ -241,12 +262,16 @@ window.rejectGame=async id=>{const g=db.games.find(x=>String(x.id)===String(id))
 function handleGameAction(event){const button=event.target.closest('[data-game-action]');if(!button)return;const id=button.dataset.id,action=button.dataset.gameAction;if(action==='publish')window.publishGame(id);else if(action==='reject')window.rejectGame(id);else if(action==='edit')window.editGame(id);else if(action==='preview')window.previewGame(id);else if(action==='delete')window.deleteGame(id)}
 $('#gamesTable')?.addEventListener('click',handleGameAction);
 $('#requestsTable')?.addEventListener('click',handleGameAction);$('#contributionsList')?.addEventListener('click',e=>{const b=e.target.closest('[data-contrib-status]');if(b)updateContribution(b.dataset.id,b.dataset.contribStatus)});$('#refreshContribBtn')?.addEventListener('click',loadContributions);
+$('#refreshContributorsBtn')?.addEventListener('click',loadContributors);
+let adminRankMode='all';
+$('#rankAllAdminBtn')?.addEventListener('click',()=>{adminRankMode='all';loadPlayStats('all')});
+$('#rankWeekAdminBtn')?.addEventListener('click',()=>{adminRankMode='week';loadPlayStats('week')});
 if($('#autoToggle')){ $('#autoToggle').checked=false; $('#autoToggle').disabled=true; }
 if($('#autoText'))$('#autoText').textContent='غير مفعّلة حالياً — ألعاب المدير فقط';
 $('#saveSettings')?.addEventListener('click',()=>toast('لا توجد إعدادات قابلة للحفظ في هذه الصفحة حالياً.'));
 $('#logoFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)toast('رفع شعار القناة إلى channel-assets يحتاج حقلاً مخصصاً في قاعدة البيانات')});
 $('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),g=db.games.find(x=>x.name.toLowerCase().includes(q));if(g){setPage('games');toast('تم العثور على '+g.name)}else toast('لم يتم العثور على لعبة مطابقة')}});
-function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','إحصائيات الزيارات المشتركة غير مفعّلة بعد');put('sessionTotal','—');put('sessionActive','—');put('sessionAverage','—');put('sessionLongest','—');put('sessionTotalTime','—');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لا توجد بيانات زيارات مشتركة بعد.</td></tr>'}
+function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','غير مفعّلة: لا يوجد جدول جلسات مشترك حتى الآن');put('sessionTotal','غير متاح');put('sessionActive','غير متاح');put('sessionAverage','غير متاح');put('sessionLongest','غير متاح');put('sessionTotalTime','غير متاح');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لم يتم إعداد تتبع جلسات الزوار بعد. الأرقام المحلية القديمة لا تمثل زوار الموقع.</td></tr>'}
 let adminGamesChannel=null,adminGamesPoll=null,lastAdminGamesSignature='';
 function adminGamesSignature(){return JSON.stringify(db.games.map(g=>[g.id,g.rawStatus,g.name,g.html_file_path,g.thumbnail_path,g.created_at]));}
 async function refreshAdminGames(force=false){
@@ -254,7 +279,8 @@ async function refreshAdminGames(force=false){
  try{
   await loadGames();
   const signature=adminGamesSignature();
-  if(force||signature!==lastAdminGamesSignature){lastAdminGamesSignature=signature;render();await loadPlayStats();}
+  if(force||signature!==lastAdminGamesSignature){lastAdminGamesSignature=signature;render();await loadPlayStats();await loadContributors();}
+ if(!window.__mkgStatsRefreshAt||Date.now()-window.__mkgStatsRefreshAt>15000){window.__mkgStatsRefreshAt=Date.now();await loadDashboardMetrics();}
  }catch(e){console.error('Automatic admin games refresh failed:',e);}
 }
 function watchAdminGames(){
@@ -272,7 +298,7 @@ async function boot(){
  const {data:role,error}=await sb.from('user_roles').select('role').eq('user_id',session.user.id).maybeSingle();
  if(error||role?.role!=='admin'){await sb.auth.signOut();$('#adminLoginError').textContent='هذا الحساب ليس لديه صلاحية مدير.';return}
  currentUser=session.user;$('#adminAuthGate')?.remove();addLogout();
- try{await loadGames();lastAdminGamesSignature=adminGamesSignature();render();renderSessions();await Promise.all([loadPlayStats(),loadContributions()]);watchAdminGames();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
+ try{await loadGames();lastAdminGamesSignature=adminGamesSignature();render();renderSessions();await Promise.all([loadPlayStats(),loadContributions(),loadDashboardMetrics(),loadContributors()]);watchAdminGames();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
 }
 window.closeModal=closeModal;
 boot();
