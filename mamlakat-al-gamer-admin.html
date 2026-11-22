@@ -133,14 +133,14 @@ function authScreen(){let x=document.getElementById('adminAuthGate');if(x)return
 function addLogout(){if($('#logoutBtn'))return;const b=document.createElement('button');b.id='logoutBtn';b.className='icon-btn';b.textContent='⇥';b.title='تسجيل الخروج';$('.top-left').prepend(b);b.onclick=async()=>{await sb.auth.signOut();location.reload()}}
 async function loadGames(){const {data,error}=await sb.from('games').select('id,title,description,category,instructions,html_file_path,thumbnail_path,status,submitter_name,created_at').order('created_at',{ascending:false});if(error)throw error;db.games=(data||[]).map(toUi)}
 
-async function loadPlayStats(){
- const host=$('#adminPopularList');if(!host)return;
- const {data,error}=await sb.from('game_plays').select('game_id,played_at');
- if(error){host.textContent='تعذر تحميل الإحصائيات. تأكد من تطبيق ملف SQL المرفق.';return}
- const counts={};(data||[]).forEach(x=>counts[x.game_id]=(counts[x.game_id]||0)+1);
- const ranked=db.games.filter(g=>g.rawStatus==='published').map(g=>({...g,plays:counts[g.id]||0})).sort((x,y)=>y.plays-x.plays).slice(0,10);
- host.innerHTML=ranked.length?ranked.map((g,i)=>'<div class="mkg-rank-card"><b class="mkg-rank-num">'+(i+1)+'</b>'+(g.thumb?'<img src="'+esc(g.thumb)+'" alt="">':'<span>🎮</span>')+'<div><b>'+esc(g.name)+'</b><div class="muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'لا توجد ألعاب منشورة.';
-}
+async function loadPlayStats(mode='all'){
+  const host=$('#adminPopularList');if(!host)return;
+  const {data,error}=await sb.rpc('get_game_play_stats');
+  if(error){host.textContent='تعذر تحميل الإحصائيات: '+error.message;return}
+  const counts={};(data||[]).forEach(x=>counts[x.game_id]=Number(mode==='week'?x.plays_last_7_days:x.total_plays)||0);
+  const ranked=db.games.filter(g=>g.rawStatus==='published').map(g=>({...g,plays:counts[g.id]||0})).sort((x,y)=>y.plays-x.plays).slice(0,10);
+  host.innerHTML=ranked.length?ranked.map((g,i)=>'<div class="mkg-rank-card"><b class="mkg-rank-num">'+(i+1)+'</b>'+(g.thumb?'<img src="'+esc(g.thumb)+'" alt="">':'<span>🎮</span>')+'<div><b>'+esc(g.name)+'</b><div class="muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'لا توجد ألعاب منشورة.';
+ }
 async function loadContributions(){
  const host=$('#contributionsList');if(!host)return;host.innerHTML='جارٍ تحميل المساهمات…';
  const {data,error}=await sb.from('visitor_contributions').select('id,type,title,details,submitter_name,status,created_at').order('created_at',{ascending:false});
