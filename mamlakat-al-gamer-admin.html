@@ -167,7 +167,7 @@ html,body{background-color:var(--bg)}
  <div class="table"><table><thead><tr><th>بداية الزيارة</th><th>آخر نشاط</th><th>المدة</th><th>الحالة</th></tr></thead><tbody id="visitorSessionsTable"><tr><td colspan="4" class="empty">جارٍ تحميل الزيارات…</td></tr></tbody></table></div>
 </div></section>
 <section class="page" id="ads"><div class="head"><div><h2>إعلانات المنصة</h2><p>إعلانات ترويجية خاصة بمملكة الجيمر تظهر للزوار</p></div><button class="btn" id="addAdBtn">＋ إضافة إعلان</button></div><div id="adsList" class="settings-grid"><div class="panel placeholder">جارٍ تحميل الإعلانات…</div></div></section>
-<section class="page" id="settings"><div class="head"><div><h2>إعدادات المنصة</h2><p>هوية مملكة الجيمر وقواعد النشر</p></div><button class="btn" id="saveSettings">حفظ</button></div><div class="settings-grid"><div class="panel setting"><h3>⚡ الموافقة على ألعاب الزوار</h3><div class="switchrow"><div><b>مراجعة ألعاب الزوار</b><small id="autoText">مراجعة يدوية — لا تُنشر اللعبة قبل موافقة المدير</small></div><span class="status">مفعّلة</span></div><p class="muted" style="line-height:2">كل لعبة يرفعها الزائر تنتظر موافقتك وتجربتك قبل ظهورها للزوار.</p></div><div class="panel setting"><h3>🎨 هوية المنصة</h3><div class="field"><label for="channelName">اسم المنصة</label><input id="channelName" type="text" maxlength="80" value="مملكة الجيمر"></div><div class="field"><label for="logoFile">شعار المنصة</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div><p class="muted">يتم حفظ الاسم والشعار في إعدادات الموقع المشتركة مع واجهة الزوار.</p></div><div class="panel setting"><h3>🌐 واجهة الزوار</h3><p class="muted" style="line-height:2">التصفح واللعب بدون حساب. رفع اللعبة متاح للزوار، وتدخل الألعاب للمراجعة قبل النشر ما لم تفعل الموافقة التلقائية.</p><span class="status">متفق عليه</span></div><div class="panel setting"><h3>🔐 الأمان</h3><p class="muted" style="line-height:2">هذه اللوحة مستقلة عن واجهة الزوار. مفاتيح Supabase السرية لا توضع داخل HTML، والصلاحيات النهائية ستفرض في الخلفية.</p><span class="status">حماية وصلاحيات Supabase</span></div></div></section>
+<section class="page" id="settings"><div class="head"><div><h2>إعدادات المنصة</h2><p>هوية مملكة الجيمر وقواعد النشر</p></div><button class="btn" id="saveSettings">حفظ</button></div><div class="settings-grid"><div class="panel setting"><h3>⚡ الموافقة على ألعاب الزوار</h3><div class="switchrow"><div><b>مراجعة ألعاب الزوار</b><small id="autoText">مراجعة يدوية — لا تُنشر اللعبة قبل موافقة المدير</small></div><span class="status">مفعّلة</span></div><p class="muted" style="line-height:2">كل لعبة يرفعها الزائر تنتظر موافقتك وتجربتك قبل ظهورها للزوار.</p></div><div class="panel setting"><h3>🎨 هوية المنصة</h3><div class="field"><label for="channelName">اسم المنصة</label><input id="channelName" type="text" maxlength="80" value="مملكة الجيمر"></div><div class="field"><label for="logoFile">شعار المنصة</label><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></div><p class="muted">يتم حفظ الاسم والشعار في إعدادات الموقع المشتركة مع واجهة الزوار.</p></div><div class="panel setting"><h3>🌐 واجهة الزوار</h3><p class="muted" style="line-height:2">التصفح واللعب بدون حساب. رفع اللعبة متاح للزوار، وتدخل الألعاب للمراجعة قبل النشر ما لم تفعل الموافقة التلقائية.</p><span class="status">متفق عليه</span></div><div class="panel setting"><h3>🔐 الأمان</h3><p class="muted" style="line-height:2">هذه اللوحة مستقلة عن واجهة الزوار. مفاتيح Supabase السرية لا توضع داخل HTML، والصلاحيات النهائية ستفرض في الخلفية.</p><span class="status">حماية وصلاحيات Supabase</span></div><div class="panel setting" style="grid-column:1/-1;border-color:#8b2949"><h3>🧹 مسح بيانات المنصة</h3><p class="muted" style="line-height:2">يحذف الألعاب والتصنيفات والطلبات والمساهمات والإحصائيات وسجلات الزيارات والملفات التابعة لها. سيبقى حساب المدير وإعدادات المنصة واسمها وشعارها كما هي. لا يمكن التراجع عن هذه العملية.</p><button type="button" class="btn" id="wipePlatformBtn" style="background:linear-gradient(135deg,#b42345,#76152e);border-color:#e34b69">مسح جميع بيانات المنصة</button></div></div></section>
 </main></div>
 <div class="modal" id="modal"><div class="modal-box" id="modalBox"></div></div><div class="toast" id="toast"></div>
 
@@ -551,6 +551,60 @@ async function saveSiteSettings(){
 }
 if($('#autoText'))$('#autoText').textContent='مراجعة يدوية مفعّلة؛ لا تُنشر ألعاب الزوار قبل موافقة المدير.';
 $('#saveSettings')?.addEventListener('click',saveSiteSettings);
+
+async function listAllStorageFiles(bucket){
+ const found=[];
+ async function walk(prefix=''){
+  let offset=0;
+  while(true){
+   const {data,error}=await sb.storage.from(bucket).list(prefix,{limit:100,offset,sortBy:{column:'name',order:'asc'}});
+   if(error)throw error;
+   if(!data||!data.length)break;
+   for(const item of data){
+    const path=prefix?prefix+'/'+item.name:item.name;
+    if(item.id===null){await walk(path)}else{found.push(path)}
+   }
+   if(data.length<100)break;
+   offset+=100;
+  }
+ }
+ await walk('');
+ return found;
+}
+async function wipePlatformData(){
+ const typed=prompt('تحذير: سيُحذف محتوى المنصة نهائياً مع الإبقاء على حساب المدير وإعدادات المنصة. اكتب بالضبط: مسح جميع البيانات');
+ if(typed!=='مسح جميع البيانات'){if(typed!==null)toast('لم تتطابق عبارة التأكيد؛ لم يتم حذف أي شيء.');return}
+ const second=confirm('تأكيد أخير: هل تريد حذف الألعاب والطلبات والتصنيفات والمساهمات والإحصائيات وسجلات الزوار وملفات الألعاب؟\nسيبقى حساب المدير وإعدادات المنصة.');
+ if(!second)return;
+ const button=$('#wipePlatformBtn');button.disabled=true;button.textContent='جارٍ حذف البيانات...';
+ try{
+  for(const bucket of ['game-files','game-thumbnails']){
+   const paths=await listAllStorageFiles(bucket);
+   for(let i=0;i<paths.length;i+=100){
+    const {error}=await sb.storage.from(bucket).remove(paths.slice(i,i+100));
+    if(error)throw new Error('تعذر حذف ملفات '+bucket+': '+error.message);
+   }
+  }
+  const jobs=[
+   ['game_edits','id'],['game_edit_requests','id'],['game_submissions','id'],
+   ['visitor_contributions','id'],['visitor_sessions','id'],['game_plays','id'],
+   ['games','id'],['game_categories','name']
+  ];
+  for(const [table,key] of jobs){
+   const {error}=await sb.from(table).delete().not(key,'is',null);
+   if(error)throw new Error('توقف الحذف عند جدول '+table+': '+error.message);
+  }
+  log('تم مسح بيانات المنصة بواسطة المدير');
+  await loadGames();await loadCategories();render();renderCategories();
+  await Promise.all([loadPlayStats(),loadContributions(),loadDashboardMetrics(),loadContributors(),loadVisitorSessions()]);
+  toast('تم مسح بيانات المنصة. بقي حساب المدير وإعدادات المنصة كما هما.');
+ }catch(error){
+  console.error('Platform wipe failed:',error);
+  toast('توقف المسح: '+error.message+'. راجع قاعدة البيانات؛ قد تكون بعض البيانات حُذفت قبل ظهور الخطأ.');
+ }finally{button.disabled=false;button.textContent='مسح جميع بيانات المنصة'}
+}
+$('#wipePlatformBtn')?.addEventListener('click',wipePlatformData);
+
 $('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),g=db.games.find(x=>x.name.toLowerCase().includes(q));if(g){setPage('games');toast('تم العثور على '+g.name)}else toast('لم يتم العثور على لعبة مطابقة')}});
 
 
