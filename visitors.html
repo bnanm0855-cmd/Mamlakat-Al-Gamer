@@ -435,6 +435,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
  .modal-card.play-modal .play-frame{height:78dvh;min-height:300px;max-height:calc(96dvh - 110px)}
 }
 </style>
+<style>
+.mkg-feature{margin-top:24px;padding:20px;border:1px solid #51277f;border-radius:17px;background:linear-gradient(140deg,#171039,#100a29);box-shadow:0 8px 24px #6c17b722}
+.mkg-feature h2{margin:3px 0 12px;font-size:20px}.mkg-rank-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.mkg-rank-card{display:flex;align-items:center;gap:11px;padding:10px;border:1px solid #43236e;border-radius:13px;background:#0c0822}
+.mkg-rank-card img{width:62px;height:48px;object-fit:cover;border-radius:8px}.mkg-rank-num{font-weight:900;color:#35eaff;font-size:20px}.mkg-feature p,.mkg-muted{color:#b9aed5;font-size:11px}
+.mkg-actions{display:flex;gap:9px;flex-wrap:wrap}.mkg-actions button{border:1px solid #8843ca;border-radius:24px;padding:10px 17px;background:linear-gradient(110deg,#8500ed,#510bc0);color:white;font-weight:800;font-size:11px}
+.mkg-admin-row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;padding:12px;border:1px solid #3e2867;border-radius:12px;margin:9px 0;background:#100c2d}
+.mkg-admin-row p{margin:4px 0;color:#b9aed5;font-size:11px}.mkg-admin-row button{margin:3px;padding:7px 12px;border-radius:8px;border:1px solid #8144bb;background:#241345;color:white;cursor:pointer}
+@media(max-width:600px){.mkg-feature{padding:14px}.mkg-feature h2{font-size:17px}}
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -465,7 +475,8 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
    <div class="section-head"><div><span class="section-kicker">اكتشف عالمك</span><h2 id="sectionTitle">ألعاب مميزة</h2></div><span class="result-count" id="resultCount">لا توجد ألعاب منشورة بعد</span></div>
    <div class="game-grid" id="gameGrid"><div class="empty-state"><span>🕹️</span><b>لا توجد ألعاب منشورة حالياً</b><p>ستظهر الألعاب هنا فور نشرها من لوحة الإدارة.</p></div></div>
   </section>
-  <section class="share-banner"><div class="share-emoji">🕹️</div><div class="share-copy"><b>هل لديك فكرة لتحسين مشروع؟</b><span>إرسال اقتراحات تعديل الألعاب ومراجعتها من الإدارة سيكون متاحاً قريباً.</span></div><span class="coming-soon-badge banner-badge">قريباً</span></section>
+  <section class="mkg-feature" id="popularGames"><span class="section-kicker">الألعاب الأكثر شعبية</span><h2>🏆 الأكثر لعباً</h2><p>ترتيب الألعاب حسب عدد مرات تشغيلها، ويمكنك التبديل بين الإجمالي وآخر 7 أيام.</p><div class="mkg-actions"><button type="button" id="rankAllBtn">الأكثر لعباً إجمالاً</button><button type="button" id="rankWeekBtn">الأكثر لعباً هذا الأسبوع</button></div><div class="mkg-rank-list" id="visitorRankList"><p class="mkg-muted">جارٍ تحميل الترتيب…</p></div></section>
+  <section class="share-banner"><div class="share-emoji">🕹️</div><div class="share-copy"><b>ساهم في تطوير مملكة الجيمر</b><span>أرسل لعبة جديدة أو شاركنا اقتراحاً لتحسين المنصة أو إحدى الألعاب.</span><div class="mkg-actions" style="margin-top:10px"><button type="button" id="contributeGameBtn">إرسال لعبة</button><button type="button" id="suggestIdeaBtn">إرسال اقتراح</button></div></div></section>
   <footer><span>© <span id="year"></span> مملكة الجيمر</span><span>صُنعت بشغف لعشاق الألعاب 💜</span></footer>
  </main>
 </div>
@@ -479,7 +490,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 const SUPABASE_URL="https://pnypwxcfhfkorwuvcemx.supabase.co",SUPABASE_KEY="sb_publishable_gtP2tBonR_llF6lhgKhP3g_yZLyw1q3";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-let games=[],search='',currentView='games',modalUrl='',gamesChannel=null;
+let games=[],search='',currentView='games',modalUrl='',gamesChannel=null,rankMode='all';
 function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500)}
 function safe(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function fileUrl(path){return path?sb.storage.from('game-files').getPublicUrl(path).data.publicUrl:''}
@@ -518,6 +529,24 @@ document.addEventListener('keyup',e=>{
  try{frame.contentWindow.document.dispatchEvent(new KeyboardEvent('keyup',{key:e.key,code:e.code,bubbles:true,cancelable:true,which:e.which,keyCode:e.keyCode}));}catch(_){}
 });
 function closeModal(){modal.classList.remove('show');modal.setAttribute('aria-hidden','true');modal.querySelector('.modal-card')?.classList.remove('play-modal');$('#modalContent').innerHTML='';if(modalUrl){URL.revokeObjectURL(modalUrl);modalUrl=''}}
+
+const visitorId=(()=>{try{let x=localStorage.getItem('mkg_visitor_id');if(!x){x=crypto.randomUUID();localStorage.setItem('mkg_visitor_id',x)}return x}catch(_){return crypto.randomUUID()}})();
+async function recordPlay(gameId){try{const {error}=await sb.from('game_plays').insert({game_id:gameId,visitor_id:visitorId});if(error)console.warn('Play counter unavailable; apply Supabase setup SQL:',error.message)}catch(e){console.warn('Play counter failed:',e)}}
+async function loadPopular(mode='all'){
+ rankMode=mode;const host=$('#visitorRankList');if(!host)return;host.innerHTML='<p class="mkg-muted">جارٍ تحميل الترتيب…</p>';
+ let q=sb.from('game_plays').select('game_id,played_at');if(mode==='week'){const since=new Date(Date.now()-7*86400000).toISOString();q=q.gte('played_at',since)}
+ const {data,error}=await q;
+ if(error){host.innerHTML='<p class="mkg-muted">إحصائيات اللعب تحتاج تطبيق ملف إعداد Supabase المرفق في المستودع.</p>';return}
+ const counts={};(data||[]).forEach(x=>counts[x.game_id]=(counts[x.game_id]||0)+1);
+ const sorted=games.map(g=>({...g,plays:counts[g.id]||0})).sort((a,b)=>b.plays-a.plays).slice(0,6);
+ host.innerHTML=sorted.length?sorted.map((g,i)=>'<div class="mkg-rank-card"><span class="mkg-rank-num">'+(i+1)+'</span>'+(g.thumbnail_path?'<img src="'+safe(imageUrl(g.thumbnail_path))+'" alt="">':'<span style="font-size:28px">🎮</span>')+'<div><b>'+safe(g.title)+'</b><div class="mkg-muted">'+g.plays+' مرة لعب</div></div></div>').join(''):'<p class="mkg-muted">لا توجد ألعاب منشورة بعد.</p>';
+}
+async function submitIdea(){
+ $('#modalContent').innerHTML='<h2 id="modalTitle">إرسال اقتراح</h2><p class="modal-desc">اقتراحك يصل إلى لوحة المدير للمراجعة. لا تضع معلومات شخصية حساسة.</p><form id="ideaForm"><div class="form-field"><label>اسمك (اختياري)</label><input id="ideaName" maxlength="60"></div><div class="form-field"><label>عنوان الاقتراح *</label><input id="ideaTitle" maxlength="120" required></div><div class="form-field"><label>التفاصيل *</label><textarea id="ideaDetails" rows="5" maxlength="2000" required></textarea></div><button class="primary-btn form-submit">إرسال الاقتراح</button></form>';
+ modal.classList.add('show');modal.setAttribute('aria-hidden','false');
+ $('#ideaForm').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;b.textContent='جارٍ الإرسال…';try{const {error}=await sb.from('visitor_contributions').insert({type:'suggestion',title:$('#ideaTitle').value.trim(),details:$('#ideaDetails').value.trim(),submitter_name:$('#ideaName').value.trim()||'زائر'});if(error)throw error;closeModal();toast('وصل اقتراحك إلى الإدارة، شكراً لمساهمتك.')}catch(err){toast('تعذر إرسال الاقتراح: '+err.message);b.disabled=false;b.textContent='إرسال الاقتراح'}};
+}
+
 async function play(id){
  const g=games.find(x=>String(x.id)===String(id));if(!g)return;
  const btn=document.querySelector('[data-play="'+CSS.escape(String(id))+'"]');
@@ -533,7 +562,7 @@ async function play(id){
   modalUrl=URL.createObjectURL(new Blob([source],{type:'text/html;charset=utf-8'}));
   $('#modalContent').innerHTML='<h2 id="modalTitle">'+safe(g.title)+'</h2><p class="modal-desc">تجربة اللعبة — استخدم الأسهم أو W A S D للتحكم، ويمكنك إغلاق النافذة للعودة</p><iframe id="visitorGameFrame" class="play-frame" tabindex="0" allow="fullscreen; gamepad; autoplay" allowfullscreen sandbox="allow-scripts allow-forms allow-pointer-lock allow-downloads allow-same-origin" referrerpolicy="no-referrer" title="'+safe(g.title)+'" src="'+modalUrl+'"></iframe>';
   modal.querySelector('.modal-card')?.classList.add('play-modal');modal.classList.add('show');modal.setAttribute('aria-hidden','false');
-  const gameFrame=$('#visitorGameFrame');gameFrame.addEventListener('load',()=>gameFrame.focus());setTimeout(()=>gameFrame.focus(),100);
+  await recordPlay(g.id);loadPopular(rankMode);const gameFrame=$('#visitorGameFrame');gameFrame.addEventListener('load',()=>gameFrame.focus());setTimeout(()=>gameFrame.focus(),100);
  }catch(e){console.error('Game launch failed:',e);toast('تعذر تشغيل اللعبة: '+(e.message||'تحقق من ملف اللعبة وصلاحيات التخزين'))}
  finally{if(btn){btn.disabled=false;btn.textContent='العب الآن ▷'}}
 }
@@ -558,8 +587,8 @@ async function openContribution(){
  }catch(error){console.error('Visitor game submission failed:',error);if(htmlPath)await sb.storage.from('game-files').remove([htmlPath]);if(thumbPath)await sb.storage.from('game-thumbnails').remove([thumbPath]);toast('تعذر إرسال اللعبة: '+(error.message||'تحقق من اتصال قاعدة البيانات'));submit.disabled=false;submit.textContent='إرسال للمراجعة'}
  };
 }
-$('#contributeBtn')?.addEventListener('click',openContribution);
-loadGames().then(watchGames).catch(e=>{console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e)});
+$('#contributeBtn')?.addEventListener('click',openContribution);$('#contributeGameBtn')?.addEventListener('click',openContribution);$('#suggestIdeaBtn')?.addEventListener('click',submitIdea);$('#rankAllBtn')?.addEventListener('click',()=>loadPopular('all'));$('#rankWeekBtn')?.addEventListener('click',()=>loadPopular('week'));
+loadGames().then(()=>{watchGames();loadPopular('all')}).catch(e=>{console.error('تعذر تحميل الألعاب المنشورة من Supabase:',e)});
 if('serviceWorker'in navigator&&location.protocol!=='file:')navigator.serviceWorker.register('./sw.js').catch(()=>{});
 })();
 </script>
