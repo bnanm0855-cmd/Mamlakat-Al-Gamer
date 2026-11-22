@@ -215,13 +215,32 @@ $('#saveSettings')?.addEventListener('click',()=>toast('لا توجد إعداد
 $('#logoFile')?.addEventListener('change',e=>{const f=e.target.files[0];if(f)toast('رفع شعار القناة إلى channel-assets يحتاج حقلاً مخصصاً في قاعدة البيانات')});
 $('#globalSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.trim().toLowerCase(),g=db.games.find(x=>x.name.toLowerCase().includes(q));if(g){setPage('games');toast('تم العثور على '+g.name)}else toast('لم يتم العثور على لعبة مطابقة')}});
 function renderSessions(){const put=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};put('sessionSource','إحصائيات الزيارات المشتركة غير مفعّلة بعد');put('sessionTotal','—');put('sessionActive','—');put('sessionAverage','—');put('sessionLongest','—');put('sessionTotalTime','—');const body=document.getElementById('sessionTable');if(body)body.innerHTML='<tr><td colspan="4" class="empty">لا توجد بيانات زيارات مشتركة بعد.</td></tr>'}
+let adminGamesChannel=null,adminGamesPoll=null,lastAdminGamesSignature='';
+function adminGamesSignature(){return JSON.stringify(db.games.map(g=>[g.id,g.rawStatus,g.name,g.html_file_path,g.thumbnail_path,g.created_at]));}
+async function refreshAdminGames(force=false){
+ if(document.hidden)return;
+ try{
+  await loadGames();
+  const signature=adminGamesSignature();
+  if(force||signature!==lastAdminGamesSignature){lastAdminGamesSignature=signature;render();}
+ }catch(e){console.error('Automatic admin games refresh failed:',e);}
+}
+function watchAdminGames(){
+ if(!adminGamesChannel){
+  adminGamesChannel=sb.channel('admin-games-live')
+   .on('postgres_changes',{event:'*',schema:'public',table:'games'},()=>refreshAdminGames(true))
+   .subscribe(status=>{if(status==='SUBSCRIBED')refreshAdminGames(true);else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')console.warn('Admin realtime unavailable; polling remains active:',status)});
+ }
+ if(!adminGamesPoll)adminGamesPoll=window.setInterval(()=>refreshAdminGames(),3000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAdminGames(true)});
+}
 async function boot(){
  authScreen();const {data:{session}}=await sb.auth.getSession();
  if(!session){return}
  const {data:role,error}=await sb.from('user_roles').select('role').eq('user_id',session.user.id).maybeSingle();
  if(error||role?.role!=='admin'){await sb.auth.signOut();$('#adminLoginError').textContent='هذا الحساب ليس لديه صلاحية مدير.';return}
  currentUser=session.user;$('#adminAuthGate')?.remove();addLogout();
- try{await loadGames();render();renderSessions();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
+ try{await loadGames();lastAdminGamesSignature=adminGamesSignature();render();renderSessions();watchAdminGames();}catch(e){toast('تعذر تحميل الألعاب: '+e.message)}
 }
 window.closeModal=closeModal;
 boot();
