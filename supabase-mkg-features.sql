@@ -16,9 +16,39 @@ create policy "Anyone can record game plays" on public.game_plays
  for insert to anon, authenticated with check (
   exists(select 1 from public.games g where g.id=game_id and g.status='published')
  );
+-- Keep raw play events private. Visitors receive aggregate counts only through the RPC below.
 drop policy if exists "Anyone can read aggregate play events" on public.game_plays;
-create policy "Anyone can read aggregate play events" on public.game_plays
- for select to anon, authenticated using (true);
+drop policy if exists "Admins read game plays" on public.game_plays;
+create policy "Admins read game plays" on public.game_plays
+ for select to authenticated using (public.is_mkg_admin());
+
+revoke select on public.game_plays from anon, authenticated;
+grant insert on public.game_plays to anon, authenticated;
+
+-- Safe aggregate endpoint: exposes counts per published game, never visitor IDs or event rows.
+create or replace function public.get_game_play_stats()
+returns table (
+ game_id uuid,
+ total_plays bigint,
+ plays_last_7_days bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $
+ select
+  p.game_id,
+  count(*)::bigint as total_plays,
+  count(*) filter (where p.played_at >= now() - interval '7 days')::bigint as plays_last_7_days
+ from public.game_plays p
+ inner join public.games g on g.id = p.game_id
+ where g.status = 'published'
+ group by p.game_id;
+$;
+
+revoke all on function public.get_game_play_stats() from public;
+grant execute on function public.get_game_play_stats() to anon, authenticated;
 
 create table if not exists public.visitor_contributions (
  id uuid primary key default gen_random_uuid(),
