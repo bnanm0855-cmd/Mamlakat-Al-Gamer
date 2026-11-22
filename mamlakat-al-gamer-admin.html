@@ -205,7 +205,7 @@ async function loadContributors(){
  body.innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b></td><td>'+x.total+'</td><td>'+x.published+'</td><td>'+x.pending+'</td><td>'+x.rejected+'</td></tr>').join(''):'<tr><td colspan="5" class="empty">لا توجد مساهمات ألعاب مسجلة بعد.</td></tr>';
 }
 function setPage(id){$$('.page').forEach(v=>v.classList.toggle('active',v.id===id));$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));$('#sidebar')?.classList.remove('open');if(id==='contributors')loadContributors();if(id==='moderation')loadContributions();if(id==='analytics'){loadDashboardMetrics();loadPlayStats(adminRankMode)}}
-$$$('.nav button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
+$('.nav button').forEach(b=>b.onclick=()=>setPage(b.dataset.page));
 $('#menuBtn')?.addEventListener('click',()=>$('#sidebar').classList.toggle('open'));
 $('#fullscreenBtn')?.addEventListener('click',()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.());
 $('#mailBtn')?.addEventListener('click',()=>toast('لا توجد رسائل جديدة'));
