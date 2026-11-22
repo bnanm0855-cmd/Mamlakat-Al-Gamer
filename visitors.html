@@ -507,8 +507,13 @@ async function loadVisitorCategories(){const {data,error}=await sb.from('game_ca
 let visitorSessionId=null,visitorSessionHeartbeat=null;
 async function startVisitorSession(){
  try{
-  let raw=sessionStorage.getItem('mkg_session_id');
-  if(raw){const {data,error}=await sb.from('visitor_sessions').select('id,ended_at').eq('id',raw).maybeSingle();if(!error&&data&&!data.ended_at){visitorSessionId=raw;await heartbeatVisitorSession();return}}
+  const raw=sessionStorage.getItem('mkg_session_id');
+  if(raw){
+   visitorSessionId=raw;
+   const {error}=await sb.rpc('heartbeat_visitor_session',{p_session_id:raw,p_visitor_id:visitorId});
+   if(!error)return;
+   visitorSessionId=null;sessionStorage.removeItem('mkg_session_id');
+  }
   const {data,error}=await sb.rpc('start_visitor_session',{p_visitor_id:visitorId});if(error)throw error;
   visitorSessionId=data;sessionStorage.setItem('mkg_session_id',data);
   await heartbeatVisitorSession();
